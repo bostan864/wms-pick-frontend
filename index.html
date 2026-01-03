@@ -1,0 +1,2186 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+window.APP_CONFIG = {
+  SUPABASE_URL: "https://yvmqfsigxecmrygmbolg.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2bXFmc2lneGVjbXJ5Z21ib2xnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwNDQ0MzgsImV4cCI6MjA3NTYyMDQzOH0.b9MXrgxADVZGvdFaKFQggD-vMd0ayZ9hX4_PmYOzrfE"
+};
+</script>
+<script>
+window.API_BASE_URL = "https://oyster-app-6u5cg.ondigitalocean.app";
+</script>
+<meta charset="UTF-8" />
+<title>Nailly – Pick & Pack PRO</title>
+<style>
+  :root{
+  --brand:#111111;
+  --ok:#2e7d32;
+  --blue:#37474f;
+  --text:#111111;
+  --muted:#555555;
+  --bg:#f4f4f4;
+
+  /* control central pentru bottom nav */
+  --bottomNavH: 140px;
+  --finishGap: 10px;
+}
+
+  *{ box-sizing:border-box; }
+
+  body{
+  font-family: Arial, sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  font-size: 18px;
+  color: var(--text);
+  background: var(--bg);
+
+  /* 🔥 DOAR AICI se rezolvă scroll-ul */
+  padding-bottom: calc(var(--bottomNavH) + 140px);
+}
+
+
+  /* APP HEADER */
+  .app-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 6px 8px;
+}
+
+
+  .logo-header{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .logo-header img{
+  max-width: 180px;   /* 🔥 mai mare */
+  width: 60%;
+  height: auto;
+  border-radius: 12px;
+}
+
+  .app-header-title{
+    text-align:right;
+    font-size:14px;
+    color:var(--muted);
+  }
+  .app-header-title strong{
+    display:block;
+    font-size:16px;
+    color:#000;
+  }
+
+  h3{
+    margin-top: 18px;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  /* STATS */
+  #statsBar{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 6px 0 10px;
+  }
+  .stats-card{
+    flex: 1 1 180px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background:#ffffff;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.04);
+  }
+  .stats-title{
+    display:block;
+    margin-bottom: 4px;
+    font-weight: 700;
+    font-size: 14px;
+    color: #444;
+  }
+  .stats-number{
+    font-weight: 800;
+    font-size: 26px;
+    margin-right: 4px;
+  }
+  .stats-pending--some{ background:#e8f7e9; color:#1e7e34; }
+  .stats-pending--none{ background:#fde8e8; color:#b10000; }
+  .stats-done{ background:#e8f0ff; color:#1a3d8f; }
+
+  /* ORDER TITLE + META */
+  #orderTitle{
+    margin-top:14px;
+    font-size: 22px;
+    font-weight: 800;
+  }
+
+  #orderMeta{
+    display:none;
+    margin: 8px 0 12px;
+    padding: 8px 10px 10px;
+    background:#ffffff;
+    border-radius: 14px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.04);
+  }
+  #orderInfoRow{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    font-size: 15px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  #orderCode{
+    font-weight:600;
+    color:#333;
+  }
+  #timerBox{
+    font-weight: 800;
+    font-size: 16px;
+    color:#333;
+  }
+
+  #progressOuter{
+    width:100%;
+    height: 14px;
+    background:#eee;
+    border-radius: 999px;
+    overflow:hidden;
+  }
+  #progressInner{
+    height:100%;
+    width:0;
+    background: var(--ok);
+    transition: width .2s ease-out;
+  }
+  #progressText{
+    margin-top: 6px;
+    font-size: 15px;
+    color:#555;
+  }
+
+  /* INPUTS */
+  input{
+    padding: 16px;
+    font-size: 18px;
+    margin: 8px 0 6px;
+    width: 100%;
+    border-radius: 14px;
+    border: 1px solid #ccc;
+    background:#fff;
+  }
+  input:focus{
+    outline:none;
+    border-color:var(--brand);
+    box-shadow:0 0 0 2px rgba(216,27,96,0.18);
+  }
+
+  /* BUTTONS (globale) */
+  button{
+    padding: 18px;
+    font-size: 18px;
+    width: 100%;
+    border-radius: 14px;
+    font-weight: 700;
+    cursor:pointer;
+    border:none;
+    background: var(--brand);
+    color:#fff;
+    transition: .15s;
+  }
+  button:hover{ filter: brightness(.96); }
+
+  /* CAMERA BUTTON */
+  #cameraBtn{
+    margin-top: 6px;
+    background:#ffffff;
+    color:#333;
+    border:1px solid #ddd;
+  }
+
+  /* CAMERA PREVIEW */
+  #cameraScanner{
+    width:100%;
+    margin-top: 12px;
+    display:none;
+    border-radius:14px;
+    overflow:hidden;
+    background:#000;
+  }
+
+  /* TABLE */
+  table{
+    width:100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    table-layout: fixed;
+    background:#ffffff;
+    border-radius: 14px;
+    overflow:hidden;
+  }
+  th, td{
+    padding: 12px 8px;
+    border: 1px solid #eee;
+    word-wrap: break-word;
+    white-space: normal;
+    font-size: 16px;
+  }
+  th{
+    background:#fafafa;
+    font-weight: 800;
+  }
+
+  .ok{ background:#c8f7c5 !important; }
+  .next-row{
+    background:#ffe4ef !important;
+    border-left: 6px solid var(--brand) !important;
+  }
+  .errorInput{ background:#ffcccc !important; }
+
+  /* RAFT = foarte vizibil */
+  #productsTable td:nth-child(3){
+    font-weight: 900;
+    font-size: 18px;
+    color:var(--brand);
+  }
+
+  /* CENTRARE cantități */
+  #productsTable td:nth-child(4),
+  #productsTable td:nth-child(5),
+  #productsTable td:nth-child(6){
+    text-align:center;
+  }
+
+  /* FINISH BTN (deasupra bottom nav) */
+  #finishBtn{
+    position: fixed;
+    left:0;
+    bottom: calc(var(--bottomNavH) + var(--finishGap));
+    width:100%;
+    padding: 20px;
+    font-size: 20px;
+    text-align:center;
+    border-radius: 0;
+    background:#9e9e9e;
+    opacity:.85;
+    pointer-events:none;
+    display:none;
+    z-index: 5000;
+  }
+  #finishBtn.active{
+    background: var(--ok);
+    opacity:1;
+    pointer-events:auto;
+  }
+
+  /* ORDERS PANEL */
+  .orders-panel{
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70vh;
+    background: #fff;
+    box-shadow: 0 -12px 30px rgba(0,0,0,0.25);
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    transform: translateY(100%);
+    transition: transform .22s ease;
+    z-index: 6500;
+    display:flex;
+    flex-direction: column;
+  }
+  .orders-panel.open{ transform: translateY(0); }
+
+  .orders-panel-header{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    padding: 14px 16px;
+    border-bottom: 1px solid #eee;
+    font-size: 18px;
+    font-weight: 800;
+  }
+  .orders-panel-header .close-btn{
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background: #f2f2f2;
+    border: 1px solid #e6e6e6;
+    color: #111;
+    font-weight: 900;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .orders-panel-list{
+    flex:1;
+    overflow-y:auto;
+  }
+  .order-row {
+  padding: 22px 20px; /* 🔥 mai mult spațiu vertical + lateral */
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 22px;    /* 🔥 text mai mare, mai ușor de citit */
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+  .order-row span{
+    font-size:14px;
+    color:var(--muted);
+  }
+  .order-row:hover{ background:#f7f7f7; }
+
+  /* QUICK SEARCH OVERLAY */
+  #quickSearchOverlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.78);
+    display:none;
+    z-index: 7000;
+  }
+  #quickSearchOverlay.active{ display:block; }
+
+  .quickSearchBox{
+    position: fixed;
+    top: 88px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(520px, 92vw);
+  }
+
+  .quickSearchInputWrap{
+    position: relative;
+    width: 100%;
+  }
+
+  #quickSearchInput{
+  width: 100%;
+  height: 74px; /* 🔥 mai înaltă */
+  padding: 0 66px 0 22px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,0.35);
+  background: rgba(0,0,0,0.35);
+  color:#fff;
+  font-size: 24px; /* 🔥 text mai mare, mai ușor de tastat */
+  outline:none;
+}
+
+  #quickSearchInput::placeholder{ color: rgba(255,255,255,0.75); }
+
+  #quickSearchBtn{
+    position:absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    background:#fff;
+    color:#111;
+    border:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0;
+    cursor:pointer;
+    font-weight: 900;
+  }
+
+  #quickSearchClose{
+    position:absolute;
+    right: -52px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.16);
+    border: 1px solid rgba(255,255,255,0.28);
+    color:#fff;
+    font-size: 22px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    user-select:none;
+  }
+
+  #quickSearchResults {
+  position: absolute;
+  top: 62px;
+  left: 0;
+  width: 100%;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.35);
+  max-height: 420px; /* doar asta, fără 60vh */
+  overflow-y: auto;
+  display: none;
+}
+
+  #quickSearchResults.show{ display:block; }
+
+  .quick-search-item {
+  padding: 23px 23px; /* 🔥 mărim padding vertical */
+  font-size: 26px;     /* 🔥 text mai mare */
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+
+  .quick-search-item:last-child{ border-bottom:none; }
+  .quick-search-item:hover{ background:#f5f7fb; }
+
+  /********************************************
+   * BOTTOM NAV – FIX REAL (nu mai e afectat de button global)
+   ********************************************/
+  #bottomNav{
+    position: fixed;
+    bottom:0;
+    left:0;
+    width:100%;
+    height: var(--bottomNavH);
+    background:#ffffff;
+    border-top: 1px solid #ddd;
+    display:flex;
+    z-index: 7200;
+    box-shadow: 0 -4px 14px rgba(0,0,0,0.12);
+  }
+
+  /* reset complet pentru button-urile din bottom nav */
+  #bottomNav .nav-btn{
+    flex:1;
+    height:100%;
+
+    /* IMPORTANT: anulăm stilul global de button */
+    width:auto !important;
+    padding: 10px 6px !important;
+    border-radius: 0 !important;
+    background: none !important;
+    color:#111 !important;
+
+    border:none !important;
+    cursor:pointer;
+
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    justify-content:center;
+    gap: 6px;
+  }
+
+  #bottomNav .nav-btn svg{
+    stroke: var(--brand);
+    width: 46px;
+    height: 46px;
+    stroke-width: 2.8;
+    opacity: .90;
+    transition: .2s ease;
+  }
+
+  #bottomNav .nav-btn span{
+    font-size: 18px;
+    font-weight: 800;
+    color:#444;
+    transition: .2s ease;
+  }
+
+  #bottomNav .nav-btn.active span{
+    color: var(--brand);
+  }
+  #bottomNav .nav-btn.active svg{
+    opacity: 1;
+    transform: scale(1.05);
+  }
+
+  #bottomNav .nav-btn:active{
+    background: rgba(216, 27, 96, 0.08) !important;
+  }
+
+  /* mobile tuning */
+  @media (max-width: 600px){
+    body{
+      padding: 10px 8px calc(var(--bottomNavH) + 38px);
+    }
+    th, td{
+      font-size: 15px;
+      padding: 11px 6px;
+    }
+    #productsTable td:nth-child(3){
+      font-size: 17px;
+    }
+  }
+.order-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.order-left {
+  font-size: 22px;       /* 🔥 mai mare */
+  font-weight: 700;      /* 🔠 un pic mai gros */
+  color: #111;           /* opțional, mai contrastant */
+}
+
+/* BUTON ANULARE – mic, sigur, UX corect */
+.cancel-btn {
+  width: auto !important;
+  padding: 10px 20px !important;        /* 🔥 mai mare pe verticală și orizontală */
+  font-size: 18px !important;           /* 🔠 text mai vizibil */
+  border-radius: 999px !important;
+
+  background: #fde8ef !important;
+  border: 1px solid #d81b60 !important;
+  color: #d81b60 !important;
+
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cancel-btn:hover{
+  background:#d81b60 !important;
+  color:#fff !important;
+}
+/* ===== LOGIN OVERLAY ===== */
+#loginOverlay{
+  position:fixed;
+  inset:0;
+  background:#f5f5f7;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:99999;
+}
+
+.login-box {
+  width: 95vw;                /* 🔥 aproape tot ecranul */
+  max-width: 600px;           /* 🔒 limită mare pe ecrane mari */
+  background: #fff;
+  border-radius: 24px;
+  padding: 48px;              /* 🔥 dublat față de original */
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.login-box h2 {
+  margin-bottom: 32px;
+  color: #d81b60;
+  font-size: 36px;            /* 🔠 mare și clar */
+  font-weight: 800;
+}
+
+.login-box input {
+  width: 100%;
+  padding: 28px;              /* 🔥 mult mai înalt */
+  margin-bottom: 24px;
+  border-radius: 20px;
+  border: 2px solid #ccc;
+  font-size: 28px;            /* 🔠 lizibil pe orice ecran */
+}
+
+.login-box button {
+  width: 100%;
+  padding: 28px;
+  border-radius: 20px;
+  border: none;
+  background: #d81b60;
+  color: #fff;
+  font-size: 28px;            /* 🔠 clar și ușor de apăsat */
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.login-error{
+  color:#b00020;
+  font-size:14px;
+  margin-top:10px;
+  display:none;
+}
+/* ============================
+   WMS MOBILE MODE – FORȚAT
+   ============================ */
+
+body.wms-mobile{
+  font-size: 22px;
+}
+
+/* TITLURI */
+body.wms-mobile h3{
+  font-size: 24px;
+}
+body.wms-mobile #orderTitle{
+  font-size: 26px;
+}
+
+/* INPUT SCANARE */
+body.wms-mobile #scanInput{
+  font-size: 24px;
+  padding: 22px;
+}
+
+/* TABEL */
+body.wms-mobile th{
+  font-size: 18px;
+}
+body.wms-mobile td{
+  font-size: 20px;
+  padding: 16px 12px;
+}
+
+/* NUMELE PRODUSULUI – COL 2 (nou) */
+body.wms-mobile #productsTable td:nth-child(2){
+  font-size: 18px;
+  font-weight: 800;
+  color: #111;
+}
+/* RAFT – COL 3 (actualizat) */
+body.wms-mobile #productsTable td:nth-child(3){
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--brand);
+  letter-spacing: 1px;
+}
+
+/* CANTITATE TOTALĂ – COL 4 (MARE ȘI CLAR) */
+body.wms-mobile #productsTable td:nth-child(4){
+  font-size: 30px;     /* 🔥 mare, lizibil pe terminal */
+  font-weight: 900;
+  color: #111;
+}
+
+/* CANTITATE SCANATĂ ȘI RĂMASĂ – COL 5 și 6 (nicio schimbare) */
+body.wms-mobile #productsTable td:nth-child(5),
+body.wms-mobile #productsTable td:nth-child(6){
+  font-size: 20px;
+  font-weight: 800;
+}
+
+/* PROGRESS */
+body.wms-mobile #progressOuter{
+  height: 20px;
+}
+body.wms-mobile #progressText{
+  font-size: 18px;
+}
+
+/* FINALIZE */
+body.wms-mobile #finishBtn{
+  font-size: 26px;
+  padding: 26px;
+}
+
+/* BOTTOM NAV */
+body.wms-mobile #bottomNav{
+  height: 150px;
+}
+body.wms-mobile #bottomNav .nav-btn span{
+  font-size: 20px;
+}
+body.wms-mobile #bottomNav .nav-btn svg{
+  width: 60px;
+  height: 60px;
+}
+/* ===== STATS BOOST – WMS REAL ===== */
+body.wms-mobile #statsBar{
+  gap: 16px;
+}
+
+body.wms-mobile .stats-card{
+  padding: 20px 18px;
+  border-radius: 18px;
+}
+
+body.wms-mobile .stats-title{
+  font-size: 20px;
+  font-weight: 800;
+}
+
+body.wms-mobile .stats-number{
+  font-size: 42px;
+  font-weight: 900;
+}
+
+#receptionPanel {
+  padding: 20px 16px;      /* adaugă padding stânga/dreapta */
+  max-width: 100%;         /* elimină limitarea artificială */
+  width: 100%;
+  margin: 0;               /* scoate centrul artificial */
+}
+
+.reception-inner {
+  max-width: 700px;
+  margin: 0 auto;
+}
+.reception-header {
+  padding: 10px 16px; /* spațiu stânga + sus */
+}
+#scanInputReception {
+  width: 100%;
+  padding: 16px;
+  font-size: 18px;
+  margin: 16px 0;
+  border-radius: 14px;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+#scanResultReception {
+  margin-top: 10px;
+  font-weight: bold;
+}
+/* ===== STATS STRUCTURA UNIFICATĂ ===== */
+
+.stats-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.stats-label {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* linia de jos (Total / Timp) */
+.stats-sub {
+  margin-top: 6px;
+  font-size: 18px;        /* 🔥 la fel pentru ambele */
+  font-weight: 700;
+}
+
+/* diferență DOAR de culoare */
+.stats-green {
+  color: #1e7e34;
+}
+
+.stats-blue {
+  color: #1a3d8f;
+}
+
+</style>
+</head>
+
+<body class="wms-mobile">
+<script>
+window.supabaseClient = supabase.createClient(
+  window.APP_CONFIG.SUPABASE_URL,
+  window.APP_CONFIG.SUPABASE_ANON_KEY
+);
+</script>
+
+<div id="loginOverlay" style="display:none">
+  <div class="login-box">
+    <h2>Autentificare</h2>
+
+    <input id="loginUser" placeholder="Utilizator">
+    <input id="loginPass" type="password" placeholder="Parolă">
+
+    <button onclick="doLogin()">Intră</button>
+
+    <div id="loginError" class="login-error">
+      User sau parolă greșită
+    </div>
+  </div>
+</div>
+
+  <!-- APP HEADER -->
+  <div class="app-header">
+    <div class="logo-header">
+      <img src="https://c.cdnmp.net/957918846/content/WMS.png">
+    </div>
+    <div class="app-header-title">
+      <strong>Nailly – Pick &amp; Pack PRO</strong>
+      <span>Scan &amp; pack mai rapid</span>
+    </div>
+  </div>
+
+  <div id="statsBar">
+  <!-- VERDE -->
+  <div id="pendingBox" class="stats-card stats-pending--some">
+    <span class="stats-title">⚠️ Status comenzi</span>
+
+    <div class="stats-main">
+      <span class="stats-number" id="pendingCount">0</span>
+      <span class="stats-label">comenzi de pregătit</span>
+    </div>
+
+    <div class="stats-sub stats-green" id="pendingTotal">
+      Total: 0 RON
+    </div>
+  </div>
+
+  <!-- ALBASTRU -->
+  <div id="doneBox" class="stats-card stats-done">
+    <span class="stats-title">✔️ Activitatea de astăzi</span>
+
+    <div class="stats-main">
+      <span class="stats-number" id="doneCount">0</span>
+      <span class="stats-label">comenzi finalizate</span>
+    </div>
+
+    <div class="stats-sub stats-blue" id="doneTime">
+      Timp: 0 min
+    </div>
+  </div>
+</div>
+
+
+
+  <h3 id="orderTitle"></h3>
+
+  <div id="orderMeta">
+    <div id="orderInfoRow">
+      <span id="orderCode"></span>
+      <span id="timerBox">Timp: <span id="timer">00:00</span></span>
+    </div>
+    <div id="progressOuter"><div id="progressInner"></div></div>
+    <div id="progressText"></div>
+  </div>
+
+  <h3>Pas 2: Scanează produsele</h3>
+
+<input
+  id="scanInput"
+  placeholder="Scanează EAN / SKU..."
+  autocomplete="off"
+  autocorrect="off"
+  autocapitalize="off"
+  spellcheck="false"
+/>
+
+
+  <button id="cameraBtn" onclick="startCameraScan()">Scanează cu camera telefonului</button>
+
+  <div id="cameraScanner"></div>
+
+  <table id="productsTable">
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Produs</th>
+        <th>Raft</th>
+        <th>Cantitate</th>
+        <th>Scanat</th>
+        <th>Rămas</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <button id="finishBtn" onclick="finalizeOrder()">Finalizează comanda</button>
+
+  <!-- ORDERS PANEL -->
+  <div id="ordersPanel" class="orders-panel">
+    <div class="orders-panel-header">
+      <div>Comenzi în pregătire</div>
+      <button class="close-btn" onclick="closeOrdersPanel()">✕</button>
+    </div>
+    <div id="ordersPanelList" class="orders-panel-list"></div>
+  </div>
+
+<!-- RECEPTION PANEL -->
+<div id="receptionPanel" style="display:none;">
+
+
+  <!-- Conținutul centrat -->
+  <div class="reception-inner">
+
+    <!-- ✅ Câmpul de scanare (mai mare + stil direct) -->
+  <input
+  id="scanInputReception"
+  placeholder="Scanează EAN / SKU..."
+  autocomplete="off"
+  autocorrect="off"
+  autocapitalize="off"
+  spellcheck="false"
+/>
+
+
+    <!-- Afișare rezultat scanare -->
+    <div id="scanResultReception"></div>
+
+  </div>
+</div>
+
+  <!-- QUICK SEARCH OVERLAY -->
+  <div id="quickSearchOverlay">
+    <div class="quickSearchBox">
+      <div class="quickSearchInputWrap">
+        <input id="quickSearchInput" placeholder="Scrie numărul comenzii…" inputmode="numeric" autocomplete="off">
+        <button id="quickSearchBtn" type="button" title="Caută">🔍</button>
+        <div id="quickSearchClose" title="Închide">×</div>
+        <div id="quickSearchResults"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV PRO -->
+  <div id="bottomNav">
+    <button id="btnHome" class="nav-btn active" title="Acasă">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#D81B60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0114.13-3.36L23 10"></path>
+        <path d="M20.49 15a9 9 0 01-14.13 3.36L1 14"></path>
+      </svg>
+      <span>Acasă</span>
+    </button>
+
+    <button id="btnOrders" class="nav-btn" title="Comenzi">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#D81B60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 5H21V19H9z"></path>
+        <polyline points="9 3 5 3 5 21 21 21"></polyline>
+      </svg>
+      <span>Comenzi</span>
+    </button>
+
+<button id="btnReception" class="nav-btn" title="Recepție">
+  <svg viewBox="0 0 24 24" fill="none" stroke="#D81B60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
+  </svg>
+  <span>Recepție</span>
+</button>
+
+    <button id="btnSearch" class="nav-btn" title="Caută">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#D81B60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <span>Caută</span>
+    </button>
+
+  </div>
+
+  <!-- CAMERA LIB -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+<script>
+/* ===================== CONFIG ====================== */
+const BACKEND_BASE_URL = "https://oyster-app-6u5cg.ondigitalocean.app";
+
+const ORDER_LIST_URL = `${BACKEND_BASE_URL}/orders/list`;
+const ORDER_GET_URL  = `${BACKEND_BASE_URL}/orders/get`;
+const DELETE_ORDER_URL = `${BACKEND_BASE_URL}/orders/delete`;
+
+let currentProducts = [];
+let currentOrderId = null;
+let allOrders = [];
+let timerInterval = null;
+let orderStartTime = null;
+let currentAccountId = null;
+let productRowMap = new Map(); // produs -> <tr>
+
+/* ===================== HELPER: DATE KEY ====================== */
+function getTodayKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `nailly_pnp_done_${y}${m}${day}`;
+}
+
+/* ===================== SCAN HELPERS (SHARED) ===================== */
+
+/* normalizează inputul brut de la scanner */
+function normalizeScanInput(raw) {
+  if (!raw) return "";
+
+  let s = String(raw).trim();
+  s = s.replace(/^\]C1/, ""); // GS1 prefix
+  s = s.replace(/\D/g, "");   // doar cifre
+  return s;
+}
+
+/* generează variante tolerate (11 / 12 / 13 cifre) */
+function generateScanVariants(code) {
+  if (!code) return [];
+
+  const variants = new Set();
+  const s = String(code).trim();
+
+  // 👉 dacă NU e numeric => SKU
+  if (!/^\d+$/.test(s)) {
+    variants.add(s);                // exact
+    variants.add(s.toUpperCase());  // siguranță
+    return [...variants];
+  }
+
+  // 👉 dacă e numeric => EAN
+  variants.add(s);
+
+  const noLeadingZero = s.replace(/^0+/, "");
+  variants.add(noLeadingZero);
+
+  if (noLeadingZero.length === 12) {
+    variants.add("0" + noLeadingZero);
+  }
+
+  if (noLeadingZero.length === 11) {
+    variants.add("0" + noLeadingZero);
+    variants.add("0" + noLeadingZero + "0");
+  }
+
+  if (s.length > 1) {
+    variants.add(s.slice(0, -1));
+    variants.add(("0" + s).slice(0, 13));
+  }
+
+  return [...variants];
+}
+/* ===================== AUDIO + VIBRAȚIE ====================== */
+function playBeep(freq = 800, duration = 120, type = "sine") {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration / 1000);
+    osc.stop(ctx.currentTime + duration / 1000 + 0.02);
+  } catch (e) {}
+}
+function feedbackSuccess() {
+  playBeep(900, 100, "square");
+  if (navigator.vibrate) navigator.vibrate(40);
+}
+function feedbackError() {
+  playBeep(220, 200, "sawtooth");
+  if (navigator.vibrate) navigator.vibrate([0, 80, 40, 80]);
+}
+
+/* ===================== TIMER ====================== */
+function startTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  orderStartTime = Date.now();
+  const timerEl = document.getElementById("timer");
+  timerEl.textContent = "00:00";
+
+  timerInterval = setInterval(() => {
+    const diff = Math.floor((Date.now() - orderStartTime) / 1000);
+    const mm = String(Math.floor(diff / 60)).padStart(2, "0");
+    const ss = String(diff % 60).padStart(2, "0");
+    timerEl.textContent = `${mm}:${ss}`;
+  }, 1000);
+}
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+/* ===================== DAILY STATS (ACCOUNT LEVEL) ====================== */
+async function loadDailyStats() {
+  if (!window.currentAccountId) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  try {
+    const { data, error } = await window.supabaseClient
+      .from("account_daily_stats")
+      .select("done_orders, total_seconds")
+      .eq("account_id", window.currentAccountId) // 🔴 OBLIGATORIU
+      .eq("stat_date", today)
+      .maybeSingle(); // 🔴 CRITIC – NU single()
+
+    if (error) {
+      console.warn("Daily stats indisponibile (normal dacă nu există rând)");
+      return;
+    }
+
+    const doneOrders = data?.done_orders ?? 0;
+    const totalSeconds = data?.total_seconds ?? 0;
+
+    /* comenzi */
+    const doneCountEl = document.getElementById("doneCount");
+    if (doneCountEl) {
+      doneCountEl.textContent = doneOrders;
+    }
+
+    /* timp */
+    const minutes = Math.floor(totalSeconds / 60);
+    const doneTimeEl = document.getElementById("doneTime");
+    if (doneTimeEl) {
+      doneTimeEl.textContent = `Timp: ${minutes} min`;
+    }
+
+  } catch (err) {
+    console.warn("Daily stats load failed:", err);
+  }
+}
+
+/* ===================== STATS ====================== */
+function updateStats() {
+  const pendingBox = document.getElementById("pendingBox");
+  const pendingCountEl = document.getElementById("pendingCount");
+  const doneCountEl = document.getElementById("doneCount");
+
+  // Pending = câte comenzi sunt în listă
+  const pending = Array.isArray(allOrders) ? allOrders.length : 0;
+  pendingCountEl.textContent = pending;
+
+  // Total RON pentru pending
+  let totalAmount = 0;
+  (allOrders || []).forEach(o => {
+    totalAmount += Number(o.total_amount || o.subtotal_amount || 0);
+  });
+
+  const formattedTotal = totalAmount.toLocaleString("ro-RO", {
+    style: "currency",
+    currency: "RON",
+    minimumFractionDigits: 2
+  });
+
+  const pendingTotalEl = document.getElementById("pendingTotal");
+  if (pendingTotalEl) pendingTotalEl.textContent = `Total: ${formattedTotal}`;
+
+  // Culori pending card
+  if (pendingBox) {
+    pendingBox.classList.remove("stats-pending--some", "stats-pending--none");
+    if (pending > 0) pendingBox.classList.add("stats-pending--some");
+    else pendingBox.classList.add("stats-pending--none");
+  }
+
+  // Done rămâne neschimbat aici (îl actualizăm în Pasul 2 din DB)
+  // doneCountEl.textContent NU îl atingem aici ca să nu-l rescriem aiurea
+}
+
+/* ===================== LOAD ORDERS ====================== */
+async function loadOrders({ silent = false } = {}) {
+  try {
+    const { data: { session } } =
+      await window.supabaseClient.auth.getSession();
+
+    if (!session) {
+      console.warn("Nu există sesiune activă");
+      return;
+    }
+
+    const res = await fetch(ORDER_LIST_URL, {
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
+
+    const orders = await res.json();
+    console.log("Comenzi încărcate:", orders);
+
+    allOrders = Array.isArray(orders) ? orders : [];
+    updateStats();
+
+    if (document.getElementById("ordersPanel").classList.contains("open")) {
+      renderOrdersPanel();
+    }
+  } catch (err) {
+    console.error(err);
+    if (!silent) alert("Eroare la încărcarea comenzilor!");
+  }
+}
+/* ===================== LOAD SINGLE ORDER ====================== */
+async function loadOrder(order) {
+  if (!order || !order.orderId) {
+  alert("Comandă invalidă");
+  return;
+}
+
+  currentOrderId = String(order.orderId);
+
+  const { data: { session } } =
+    await window.supabaseClient.auth.getSession();
+
+  if (!session) {
+    alert("Sesiune invalidă. Reautentifică-te.");
+    return;
+  }
+
+  const res = await fetch(
+  `${ORDER_GET_URL}?orderId=${encodeURIComponent(order.orderId)}`,
+  {
+    cache: "no-store",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  }
+);
+
+  if (!res.ok) {
+    alert("Eroare la încărcarea comenzii");
+    return;
+  }
+
+  const data = await res.json();
+
+  const products = (data.line_items || [])
+    .filter(p => p.item_type === "product");
+
+  /* ===================== 1️⃣ SKU LIST ===================== */
+  const skuList = [
+    ...new Set(
+      products
+        .map(p => String(p.product_sku || "").replace(/^0+/, ""))
+        .filter(Boolean)
+    )
+  ];
+
+  /* ===================== 2️⃣ LOCAȚII DIN DB ===================== */
+  let locationMap = new Map();
+
+  if (skuList.length) {
+    const { data: locations, error } = await window.supabaseClient
+      .from("product_locations")
+      .select("sku, location")
+      .eq("account_id", window.currentAccountId)
+      .in("sku", skuList);
+
+    if (error) {
+      console.error("Eroare locații:", error);
+    } else {
+      locations.forEach(row => {
+        if (row.location && row.location !== "EMPTY") {
+          locationMap.set(row.sku, row.location);
+        }
+      });
+    }
+  }
+
+  /* ===================== 3️⃣ CONSTRUIRE PRODUSE ===================== */
+  currentProducts = products.map(p => {
+    const originalSku = p.product_sku || "";
+    const lookupSku = String(originalSku).replace(/^0+/, "");
+
+    return {
+      sku: originalSku,
+      ean: p.product_ean,
+      name: p.product_name,
+      qty: Number(p.quantity),
+      shelf: locationMap.get(lookupSku) || "Fără locație",
+      scanned: 0
+    };
+  });
+
+  /* ===================== SORTARE ===================== */
+  currentProducts.sort((a, b) => {
+    if (a.shelf === b.shelf) {
+      return String(a.sku).localeCompare(String(b.sku));
+    }
+    return String(a.shelf).localeCompare(String(b.shelf));
+  });
+
+  /* ===================== UI ===================== */
+  document.getElementById("orderTitle").textContent =
+    "Comanda #" + currentOrderId;
+
+  document.getElementById("orderCode").textContent =
+    "ID comandă: " + currentOrderId;
+
+  document.getElementById("orderMeta").style.display = "block";
+
+  const scanInput = document.getElementById("scanInput");
+  enableScanInput();
+
+// 🔥 REACTIVARE SCANARE
+
+  startTimer();
+  buildProductsTableOnce();
+
+  console.log("✅ Comandă încărcată:", currentOrderId);
+}
+
+/* ===================== TABLE ====================== */
+function renderTable() {
+  const tbody = document.querySelector("#productsTable tbody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  const nextIndex = currentProducts.findIndex(p => p.scanned < p.qty);
+
+  currentProducts.forEach((p, index) => {
+    const tr = document.createElement("tr");
+
+    if (index === nextIndex) tr.classList.add("next-row");
+    if (p.scanned >= p.qty) tr.classList.add("ok");
+
+    tr.innerHTML = `
+      <td>${p.sku ?? ""}</td>
+      <td>${p.name ?? ""}</td>
+      <td>${p.shelf ?? ""}</td>
+      <td>${p.qty}</td>
+      <td>${p.scanned}</td>
+      <td>${p.qty - p.scanned}</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+
+  // 🔒 FINISH BUTTON
+  const finishBtn = document.getElementById("finishBtn");
+if (finishBtn) {
+  const allDone =
+    currentProducts.length > 0 &&
+    currentProducts.every(p => Number(p.scanned) >= Number(p.qty));
+
+  // 🔥 afișăm butonul când există produse
+  finishBtn.style.display = currentProducts.length > 0 ? "block" : "none";
+
+  // 🔒 activăm doar când e tot scanat
+  finishBtn.classList.toggle("active", allDone);
+}
+
+}
+/* ===================== SCAN CONTEXT RESET ====================== */
+let scanTimer = null;
+
+function enableScanInput() {
+  const scanInput = document.getElementById("scanInput");
+  if (!scanInput) return;
+
+  scanInput.disabled = false;
+  scanInput.value = "";
+
+  // 🔑 OBLIGATORIU: focus pentru scanner hardware
+  scanInput.focus();
+
+  // 🔕 prevenim tastatura virtuală (NU readonly!)
+  setTimeout(() => {
+    scanInput.setAttribute("inputmode", "none");
+  }, 50);
+
+  // reset listeners (siguranță)
+  scanInput.removeEventListener("input", handleScanAuto);
+  scanInput.addEventListener("input", handleScanAuto);
+
+  // ✋ tastare manuală DOAR la click intenționat
+  if (!scanInput.dataset.manualEnabled) {
+    scanInput.addEventListener("click", function () {
+      this.removeAttribute("inputmode");
+      this.focus();
+    });
+    scanInput.dataset.manualEnabled = "1";
+  }
+}
+
+/* ===================== SCAN AUTO (HONEYWELL) ====================== */
+function handleScanAuto(e) {
+  clearTimeout(scanTimer);
+
+  scanTimer = setTimeout(() => {
+    const rawValue = (e.target.value || "").trim();
+
+    // se golește MEREU
+    e.target.value = "";
+
+    if (!rawValue) return;
+
+    handleScanValue(rawValue);
+  }, 180); // timing stabil Honeywell
+}
+
+/* ===================== SCAN LOGIC ====================== */
+function handleScanValue(rawValue) {
+  const raw = normalizeScanInput(rawValue);
+  if (!raw) {
+    feedbackError();
+    flashError();
+    return;
+  }
+
+  const scannedVariants = generateScanVariants(raw);
+
+  const found = currentProducts.find(p => {
+    const skuVariants = generateScanVariants(p.sku);
+    const eanVariants = generateScanVariants(p.ean);
+
+    return scannedVariants.some(v =>
+      skuVariants.includes(v) || eanVariants.includes(v)
+    );
+  });
+
+  if (!found) {
+    feedbackError();
+    flashError();
+    return;
+  }
+
+  if (found.scanned < found.qty) {
+    found.scanned++;
+    feedbackSuccess();
+    updateProductRow(found);
+    highlightNextRow();
+
+  } else {
+    feedbackError();
+    flashError();
+  }
+}
+/* ===================== BUILD TABLE (ONCE) ====================== */
+function buildProductsTableOnce() {
+  const tbody = document.querySelector("#productsTable tbody");
+  if (!tbody) return;
+
+  // 🔥 curățăm o singură dată
+  tbody.innerHTML = "";
+  productRowMap.clear();
+
+  currentProducts.forEach(p => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${p.sku ?? ""}</td>
+      <td>${p.name ?? ""}</td>
+      <td>${p.shelf ?? ""}</td>
+      <td>${p.qty}</td>
+      <td class="scanned">0</td>
+      <td class="remaining">${p.qty}</td>
+    `;
+
+    tbody.appendChild(tr);
+    productRowMap.set(p, tr);
+  });
+
+  highlightNextRow();
+}
+function updateProductRow(product) {
+  const tr = productRowMap.get(product);
+  if (!tr) return;
+
+  const scannedTd = tr.querySelector(".scanned");
+  const remainingTd = tr.querySelector(".remaining");
+
+  scannedTd.textContent = product.scanned;
+  remainingTd.textContent = product.qty - product.scanned;
+
+  if (product.scanned >= product.qty) {
+    tr.classList.add("ok");
+  }
+}
+function highlightNextRow() {
+  // scoatem highlight vechi
+  document
+    .querySelectorAll("#productsTable tr")
+    .forEach(tr => tr.classList.remove("next-row"));
+
+  const next = currentProducts.find(p => p.scanned < p.qty);
+  if (!next) return;
+
+  const tr = productRowMap.get(next);
+  if (!tr) return;
+
+  tr.classList.add("next-row");
+
+  // 🔥 scroll REAL, centrat vizual
+  setTimeout(() => {
+    const y =
+      tr.getBoundingClientRect().top +
+      window.pageYOffset -
+      window.innerHeight / 2 +
+      tr.offsetHeight / 2;
+
+    window.scrollTo({
+      top: y,
+      behavior: "auto"
+    });
+  }, 40);
+}
+
+/* ===================== CAMERA SCAN ====================== */
+function startCameraScan() {
+  const div = document.getElementById("cameraScanner");
+  div.style.display = "block";
+
+  const html5QrCode = new Html5Qrcode("cameraScanner");
+
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: { width: 260, height: 160 } },
+    (decodedText) => {
+      document.getElementById("scanInput").value = decodedText;
+      handleScan({ key: "Enter", target: { value: decodedText } });
+
+      html5QrCode.stop().then(() => {
+        div.style.display = "none";
+      }).catch(() => {
+        div.style.display = "none";
+      });
+    }
+  ).catch(err => {
+    console.error(err);
+    alert("Camera nu a putut porni. Verifică permisiunile.");
+    div.style.display = "none";
+  });
+}
+
+/* ===================== FINALIZE ORDER ====================== */
+async function finalizeOrder() {
+  if (!currentOrderId || !window.currentAccountId) {
+    alert("Comandă sau cont invalid");
+    return;
+  }
+
+  if (!confirm("Finalizezi comanda?")) return;
+
+  try {
+    const { data: { session } } =
+      await window.supabaseClient.auth.getSession();
+
+    if (!session) {
+      alert("Sesiune invalidă. Reautentifică-te.");
+      return;
+    }
+
+    /* ⏱️ 0️⃣ CALCUL TIMP COMANDĂ (SECUNDE) */
+    const durationSeconds = Math.floor(
+      (Date.now() - orderStartTime) / 1000
+    );
+
+    /* 1️⃣ ȘTERGERE COMANDĂ (flow existent) */
+    const res = await fetch(DELETE_ORDER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        orderId: currentOrderId,
+        accountId: window.currentAccountId,
+      }),
+    });
+
+    if (!res.ok) {
+      alert("Eroare la finalizarea comenzii");
+      return;
+    }
+
+    /* 2️⃣ CALCUL SUMĂ COMANDĂ */
+    const order = allOrders.find(
+      o => String(o.orderId) === String(currentOrderId)
+    );
+
+    const orderAmount = Number(
+      order?.total_amount || order?.subtotal_amount || 0
+    );
+
+    /* 3️⃣ 🔥 DAILY STATS – ATOMIC (BANI + TIMP) */
+    const { error: statsError } = await window.supabaseClient
+      .rpc("increment_daily_stats", {
+        p_account_id: window.currentAccountId,
+        p_amount: orderAmount,
+        p_seconds: durationSeconds
+      });
+
+    if (statsError) {
+      console.error("Daily stats RPC error:", statsError);
+    }
+
+    alert("Comanda a fost finalizată");
+
+    /* 4️⃣ RESET UI */
+    currentProducts = [];
+    currentOrderId = null;
+
+    stopTimer();
+
+    document.getElementById("orderTitle").textContent = "";
+    document.getElementById("orderMeta").style.display = "none";
+    document.querySelector("#productsTable tbody").innerHTML = "";
+
+    const scanInput = document.getElementById("scanInput");
+    if (scanInput) {
+      scanInput.value = "";
+      scanInput.blur();
+      scanInput.disabled = true;
+    }
+
+    const finishBtn = document.getElementById("finishBtn");
+    finishBtn.style.display = "none";
+    finishBtn.classList.remove("active");
+    finishBtn.disabled = true;
+
+    closeOrdersPanel();
+    closeQS();
+
+    /* 5️⃣ REFRESH DATE */
+    await loadOrders({ silent: true });
+    await loadDailyStats();   // 🔑 aici se actualizează timpul + comenzile
+    updateStats();
+
+    setActiveNav("btnHome");
+    feedbackSuccess();
+
+  } catch (err) {
+    console.error("Finalize order error:", err);
+    alert("Eroare neașteptată la finalizare");
+  }
+}
+/* ===================== CANCEL ORDER ====================== */
+async function cancelOrder(orderId, event) {
+  event.stopPropagation();
+
+  if (!confirm(`Anulezi comanda #${orderId}?`)) return;
+
+  const { data: { session } } =
+    await window.supabaseClient.auth.getSession();
+
+  if (!session) {
+    alert("Sesiune invalidă");
+    return;
+  }
+
+  const res = await fetch(DELETE_ORDER_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
+      orderId,
+      accountId: window.currentAccountId,
+    }),
+  });
+
+  if (!res.ok) {
+    alert("Eroare la anulare");
+    return;
+  }
+
+  await resetAfterOrderAction({ silent: true });
+  closeOrdersPanel();
+  renderOrdersPanel();
+}
+
+/* ===================== ORDERS PANEL ====================== */
+function openOrdersPanel() {
+  document.getElementById("ordersPanel").classList.add("open");
+  renderOrdersPanel();
+}
+function closeOrdersPanel() {
+  document.getElementById("ordersPanel").classList.remove("open");
+}
+
+function toggleOrdersPanel(){
+  const panel = document.getElementById("ordersPanel");
+  if (panel.classList.contains("open")) {
+    closeOrdersPanel();
+  } else {
+    openOrdersPanel();
+  }
+}
+
+function renderOrdersPanel() {
+  const list = document.getElementById("ordersPanelList");
+  list.innerHTML = "";
+
+  if (!allOrders.length) {
+    list.innerHTML = "<div style='padding:16px;color:#666'>Nu există comenzi.</div>";
+    return;
+  }
+
+  allOrders.forEach(o => {
+    const div = document.createElement("div");
+div.className = "order-row";
+
+div.innerHTML = `
+  <div class="order-left">
+    Comanda #${o.orderId}
+  </div>
+  <button class="cancel-btn" onclick="cancelOrder('${o.orderId}', event)">
+    Anulată
+  </button>
+`;
+
+    div.onclick = () => {
+      closeOrdersPanel();
+      closeQS();
+      loadOrder(o);
+      setActiveNav("btnOrders");
+    };
+    list.appendChild(div);
+  });
+}
+
+/* ===================== QUICK SEARCH ====================== */
+const qs = {
+  overlay: null,
+  input: null,
+  btn: null,
+  close: null,
+  results: null
+};
+
+function openQS(){
+  qs.overlay.classList.add("active");
+  qs.input.value = "";
+  qs.results.innerHTML = "";
+  qs.results.classList.remove("show");
+  setTimeout(() => qs.input.focus(), 60);
+}
+function closeQS(){
+  qs.overlay.classList.remove("active");
+  qs.input.value = "";
+  qs.results.innerHTML = "";
+  qs.results.classList.remove("show");
+}
+
+function renderQSResults(matches){
+  qs.results.innerHTML = "";
+  if (!matches.length) {
+    qs.results.classList.remove("show");
+    return;
+  }
+  qs.results.classList.add("show");
+
+  matches.slice(0, 10).forEach(o => {
+    const div = document.createElement("div");
+    div.className = "quick-search-item";
+    div.textContent = `Comanda #${o.orderId}`;
+    div.onclick = () => {
+      closeQS();
+      loadOrder(o);
+      setActiveNav("btnSearch");
+    };
+    qs.results.appendChild(div);
+  });
+}
+
+function qsHandleInput(){
+  const v = (qs.input.value || "").trim();
+  if (!v) {
+    qs.results.innerHTML = "";
+    qs.results.classList.remove("show");
+    return;
+  }
+  const matches = allOrders.filter(o => String(o.orderId).includes(v));
+  renderQSResults(matches);
+}
+
+function qsRunSearch(){
+  const v = (qs.input.value || "").trim();
+  if (!v) return;
+
+  const order = allOrders.find(o => String(o.orderId) === v);
+  if (!order) {
+    alert("Comanda nu a fost găsită");
+    return;
+  }
+
+  closeQS();
+  loadOrder(order);
+  setActiveNav("btnSearch");
+}
+
+/* ===================== NAV STATE ====================== */
+function setActiveNav(id){
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+  const btn = document.getElementById(id);
+  if (btn) btn.classList.add("active");
+}
+
+/* ===================== HOME REFRESH ====================== */
+function refreshHome(){
+  closeOrdersPanel();
+  closeQS();
+
+  stopTimer();
+  currentProducts = [];
+  currentOrderId = null;
+
+  document.getElementById("orderTitle").textContent = "";
+  document.getElementById("orderMeta").style.display = "none";
+  document.querySelector("#productsTable tbody").innerHTML = "";
+
+  const scanInput = document.getElementById("scanInput");
+   disableScanInput();
+
+
+  const btn = document.getElementById("finishBtn");
+  btn.style.display = "none";
+  btn.classList.remove("active");
+
+  loadOrders({ silent: true });
+  updateStats();
+  feedbackSuccess();
+}
+async function resetAfterOrderAction({ silent = false } = {}) {
+  console.log("🔄 Reset WMS after order action");
+
+  // reset context comandă
+  currentProducts = [];
+  currentOrderId = null;
+
+  stopTimer();
+
+  // reset UI comandă
+  document.getElementById("orderTitle").textContent = "";
+  document.getElementById("orderMeta").style.display = "none";
+  document.querySelector("#productsTable tbody").innerHTML = "";
+
+  const scanInput = document.getElementById("scanInput");
+  disableScanInput();
+
+
+  const finishBtn = document.getElementById("finishBtn");
+  finishBtn.style.display = "none";
+  finishBtn.classList.remove("active");
+
+  // 🔥 ADEVĂRUL: refetch + recalc
+  await loadOrders({ silent });
+  updateStats();
+}
+
+/* ===================== INIT ====================== */
+document.addEventListener("DOMContentLoaded", () => {
+  qs.overlay = document.getElementById("quickSearchOverlay");
+  qs.input = document.getElementById("quickSearchInput");
+  qs.btn = document.getElementById("quickSearchBtn");
+  qs.close = document.getElementById("quickSearchClose");
+  qs.results = document.getElementById("quickSearchResults");
+
+  qs.btn.addEventListener("click", qsRunSearch);
+  qs.close.addEventListener("click", closeQS);
+  qs.overlay.addEventListener("click", (e) => { if (e.target === qs.overlay) closeQS(); });
+
+  qs.input.addEventListener("input", qsHandleInput);
+  qs.input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") qsRunSearch();
+    if (e.key === "Escape") closeQS();
+  });
+
+  document.getElementById("btnHome").addEventListener("click", () => {
+    setActiveNav("btnHome");
+    refreshHome();
+  });
+  document.getElementById("btnOrders").addEventListener("click", () => {
+    setActiveNav("btnOrders");
+    toggleOrdersPanel();
+  });
+  document.getElementById("btnSearch").addEventListener("click", () => {
+    setActiveNav("btnSearch");
+    openQS();
+  });
+
+  loadOrders({silent:true});
+});
+
+document.getElementById("btnReception").addEventListener("click", () => {
+  setActiveNav("btnReception");
+  showReceptionPanel();
+});
+
+function showReceptionPanel() {
+  const receptionPanel = document.getElementById("receptionPanel");
+  const isVisible = receptionPanel.style.display === "block";
+
+  if (isVisible) {
+    location.reload();
+    return;
+  }
+
+  // 🔓 Arată Recepția
+  receptionPanel.style.display = "block";
+
+  // 🔒 Ascunde restul
+  document.getElementById("ordersPanel").style.display = "none";
+  document.getElementById("productsTable").style.display = "none";
+  document.getElementById("scanInput").style.display = "none";
+  document.getElementById("cameraBtn").style.display = "none";
+  document.getElementById("finishBtn").style.display = "none";
+  document.getElementById("orderMeta").style.display = "none";
+
+  document.getElementById("orderTitle").textContent = "Modul Recepție";
+  setActiveNav("btnReception");
+
+  // 🔥 FOCUS GARANTAT (după user click)
+  setTimeout(() => {
+    const input = document.getElementById("scanInputReception");
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  }, 80);
+}
+
+
+/* refresh automat la 30 sec */
+setInterval(() => loadOrders({silent:true}), 30000);
+</script>
+<script>
+function hideOverlay(overlay) {
+  if (!overlay) return;
+  overlay.style.display = "none";
+}
+
+function showOverlay(overlay) {
+  if (!overlay) return;
+  overlay.style.display = "flex";
+}
+</script>
+
+<script>
+/* =====================
+   ACCOUNT CONTEXT
+   ===================== */
+window.currentAccountId = null;
+
+/* =====================
+   LOAD CURRENT ACCOUNT
+   ===================== */
+async function loadCurrentAccount() {
+  const { data: { user }, error: userError } =
+    await window.supabaseClient.auth.getUser();
+
+  if (userError || !user) {
+    console.warn("Nu există user logat");
+    return;
+  }
+
+  const { data, error } = await window.supabaseClient
+    .from("user_accounts")
+    .select("account_id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (error) {
+    console.error("Eroare user_accounts:", error);
+    return;
+  }
+
+  window.currentAccountId = data.account_id;
+  console.log("ACCOUNT ACTIV:", window.currentAccountId);
+// ⬇️⬇️⬇️ ADAUGĂ DOAR LINIA ASTA ⬇️⬇️⬇️
+  loadDailyStats();
+}
+
+/* =====================
+   LOGIN
+   ===================== */
+async function doLogin() {
+  const email = document.getElementById("loginUser").value.trim();
+  const password = document.getElementById("loginPass").value.trim();
+  const err = document.getElementById("loginError");
+
+  err.style.display = "none";
+
+  const { error } = await window.supabaseClient.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    err.textContent = "Email sau parolă greșită";
+    err.style.display = "block";
+    return;
+  }
+
+  await loadCurrentAccount();
+  hideOverlay(document.getElementById("loginOverlay"));
+}
+
+/* =====================
+   AUTO LOGIN ON REFRESH
+   ===================== */
+window.addEventListener("load", async () => {
+  const overlay = document.getElementById("loginOverlay");
+
+  const { data } = await window.supabaseClient.auth.getSession();
+
+  if (data.session) {
+    await loadCurrentAccount();
+    hideOverlay(overlay);
+  } else {
+    showOverlay(overlay);
+  }
+});
+</script>
+
+<script>
+/* ===================== RECEPȚIE – SKU + EAN (LIKE FIX) ===================== */
+
+const scanInputReception = document.getElementById("scanInputReception");
+const scanResultReception = document.getElementById("scanResultReception");
+
+let receptionScanTimer = null;
+
+/* ===================== UTIL ===================== */
+function normalize(code) {
+  if (!code) return "";
+  return String(code)
+    .replace(/^\]C1/, "")
+    .replace(/\D/g, "")
+    .replace(/^0+/, "");
+}
+
+/* ===================== FETCH LOCAȚIE ===================== */
+async function fetchReceptionLocation(rawCode) {
+  scanResultReception.innerHTML = "🔍 Caut produsul...";
+
+  const code = normalizeScanInput(rawCode);
+  if (!code) return renderNewProductForm("");
+
+  // normalizare scanner → 11 cifre
+  const eanNorm = code.replace(/^0+/, "").slice(-11);
+
+  /* 1️⃣ SKU */
+  let { data } = await window.supabaseClient
+    .from("product_locations")
+    .select("id, sku, ean, ean_norm, location")
+    .eq("account_id", window.currentAccountId)
+    .eq("sku", code)
+    .limit(1);
+
+  if (data?.length) return renderExistingProduct(data[0]);
+
+  /* 2️⃣ EAN complet */
+  ({ data } = await window.supabaseClient
+    .from("product_locations")
+    .select("id, sku, ean, ean_norm, location")
+    .eq("account_id", window.currentAccountId)
+    .eq("ean", code)
+    .limit(1));
+
+  if (data?.length) return renderExistingProduct(data[0]);
+
+  /* 3️⃣ EAN normalizat (11 cifre) */
+  if (eanNorm.length === 11) {
+    ({ data } = await window.supabaseClient
+      .from("product_locations")
+      .select("id, sku, ean, ean_norm, location")
+      .eq("account_id", window.currentAccountId)
+      .eq("ean_norm", eanNorm)
+      .limit(1));
+
+    if (data?.length) return renderExistingProduct(data[0]);
+  }
+
+  /* ❌ produs nou */
+  renderNewProductForm(code);
+}
+
+/* ===================== UI: PRODUS EXISTENT ===================== */
+function renderExistingProduct(row) {
+  scanResultReception.innerHTML = `
+    <div style="background:#e8f7e9;padding:22px;border-radius:16px;
+      font-size:26px;font-weight:900;">
+      📍 Locație curentă: ${row.location}
+    </div>
+
+    <input id="newLocationInput"
+      placeholder="Noua locație"
+      style="margin-top:16px;width:100%;padding:18px;font-size:22px;" />
+
+    <button style="margin-top:14px"
+      onclick="updateLocation(${row.id})">
+      Actualizează locația
+    </button>
+  `;
+}
+
+/* ===================== UI: PRODUS NOU ===================== */
+function renderNewProductForm(code) {
+  scanResultReception.innerHTML = `
+    <div style="background:#fff3cd;padding:22px;border-radius:16px;
+      font-size:22px;font-weight:800;">
+      ⚠️ Produs nou / fără locație
+    </div>
+
+    <input id="skuInput"
+      placeholder="SKU"
+      value="${code}"
+      style="margin-top:14px;width:100%;padding:18px;font-size:22px;" />
+
+    <input id="eanInput"
+      placeholder="EAN (opțional)"
+      style="margin-top:12px;width:100%;padding:18px;font-size:22px;" />
+
+    <input id="locationInput"
+      placeholder="Locație (ex: R2-R4-P1)"
+      style="margin-top:12px;width:100%;padding:18px;font-size:22px;" />
+
+    <button style="margin-top:16px"
+      onclick="createProductLocation()">
+      Salvează
+    </button>
+  `;
+}
+
+/* ===================== UPDATE LOCAȚIE ===================== */
+async function updateLocation(id) {
+  const loc = document.getElementById("newLocationInput").value.trim();
+  if (!loc) return alert("Introdu o locație");
+
+  const { error } = await window.supabaseClient
+    .from("product_locations")
+    .update({ location: loc })
+    .eq("id", id);
+
+  if (error) {
+    console.error(error);
+    alert("Eroare la salvare");
+    return;
+  }
+
+  scanResultReception.innerHTML = "✅ Locație actualizată";
+}
+
+/* ===================== INSERT PRODUS NOU ===================== */
+async function createProductLocation() {
+  const sku = document.getElementById("skuInput").value.trim();
+  const ean = document.getElementById("eanInput").value.trim();
+  const loc = document.getElementById("locationInput").value.trim();
+
+  if (!sku || !loc) {
+    alert("SKU și locația sunt obligatorii");
+    return;
+  }
+
+  const { error } = await window.supabaseClient
+    .from("product_locations")
+    .insert({
+      sku,
+      ean: ean || null,
+      location: loc,
+      account_id: window.currentAccountId
+    });
+
+  if (error) {
+    console.error(error);
+    alert("Eroare la salvare produs");
+    return;
+  }
+
+  scanResultReception.innerHTML = "✅ Produs salvat";
+}
+
+/* ===================== INPUT ===================== */
+scanInputReception.addEventListener("input", (e) => {
+  clearTimeout(receptionScanTimer);
+
+  receptionScanTimer = setTimeout(() => {
+    const raw = e.target.value;
+    if (!raw) return;
+
+    e.target.value = "";
+    fetchReceptionLocation(raw);
+  }, 200);
+});
+
+</script>
+
+</body>
+</html>
