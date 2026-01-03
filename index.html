@@ -1183,12 +1183,16 @@ async function loadOrders({ silent = false, force = false } = {}) {
 
     if (!session) return;
 
-    const res = await fetch(ORDER_LIST_URL, {
-      cache: "no-store",
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-      },
-    });
+    const res = await fetch(
+  `${ORDER_LIST_URL}?accountId=${encodeURIComponent(window.currentAccountId)}`,
+  {
+    cache: "no-store",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  }
+);
+
 
     if (!res.ok) throw new Error("Orders fetch failed");
 
