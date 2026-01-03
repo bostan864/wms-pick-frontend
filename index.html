@@ -1320,48 +1320,6 @@ async function loadOrder(order) {
   console.log("✅ Comandă încărcată:", currentOrderId);
 }
 
-/* ===================== TABLE ====================== */
-function renderTable() {
-  const tbody = document.querySelector("#productsTable tbody");
-  if (!tbody) return;
-
-  tbody.innerHTML = "";
-
-  const nextIndex = currentProducts.findIndex(p => p.scanned < p.qty);
-
-  currentProducts.forEach((p, index) => {
-    const tr = document.createElement("tr");
-
-    if (index === nextIndex) tr.classList.add("next-row");
-    if (p.scanned >= p.qty) tr.classList.add("ok");
-
-    tr.innerHTML = `
-      <td>${p.sku ?? ""}</td>
-      <td>${p.name ?? ""}</td>
-      <td>${p.shelf ?? ""}</td>
-      <td>${p.qty}</td>
-      <td>${p.scanned}</td>
-      <td>${p.qty - p.scanned}</td>
-    `;
-
-    tbody.appendChild(tr);
-  });
-
-  // 🔒 FINISH BUTTON
-  const finishBtn = document.getElementById("finishBtn");
-if (finishBtn) {
-  const allDone =
-    currentProducts.length > 0 &&
-    currentProducts.every(p => Number(p.scanned) >= Number(p.qty));
-
-  // 🔥 afișăm butonul când există produse
-  finishBtn.style.display = currentProducts.length > 0 ? "block" : "none";
-
-  // 🔒 activăm doar când e tot scanat
-  finishBtn.classList.toggle("active", allDone);
-}
-
-}
 /* ===================== SCAN CONTEXT RESET ====================== */
 let scanTimer = null;
 
@@ -1436,6 +1394,7 @@ if (skuMatch) {
     feedbackSuccess();
     updateProductRow(skuMatch);
     highlightNextRow();
+    updateFinishButton();
     return;
   } else {
     feedbackError();
@@ -1465,27 +1424,7 @@ if (eanMatch.scanned < eanMatch.qty) {
   feedbackSuccess();
   updateProductRow(eanMatch);
   highlightNextRow();
-} else {
-  feedbackError();
-  flashError();
-}
-
-  if (!found) {
-    feedbackError();
-    flashError();
-    return;
-  }
-
-  if (found.scanned < found.qty) {
-    found.scanned++;
-    feedbackSuccess();
-    updateProductRow(found);
-    highlightNextRow();
-
-  } else {
-    feedbackError();
-    flashError();
-  }
+  checkFinishButton(); // ✅ ASTA LIPSEA
 }
 /* ===================== BUILD TABLE (ONCE) ====================== */
 function buildProductsTableOnce() {
@@ -1555,6 +1494,21 @@ function highlightNextRow() {
       behavior: "auto"
     });
   }, 40);
+}
+function updateFinishButton() {
+  const finishBtn = document.getElementById("finishBtn");
+  if (!finishBtn) return;
+
+  const hasProducts = currentProducts.length > 0;
+  const allDone =
+    hasProducts &&
+    currentProducts.every(p => Number(p.scanned) >= Number(p.qty));
+
+  // afișăm butonul dacă există produse
+  finishBtn.style.display = hasProducts ? "block" : "none";
+
+  // îl activăm doar când totul e scanat
+  finishBtn.classList.toggle("active", allDone);
 }
 
 /* ===================== CAMERA SCAN ====================== */
