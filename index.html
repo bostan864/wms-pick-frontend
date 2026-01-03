@@ -973,8 +973,7 @@ window.supabaseClient = supabase.createClient(
 /* ===================== CONFIG ====================== */
 const BACKEND_BASE_URL = "https://oyster-app-6u5cg.ondigitalocean.app";
 
-const ORDER_LIST_URL =
-  `${BACKEND_BASE_URL}/orders/list?status=pending`;
+const ORDER_LIST_URL = `${BACKEND_BASE_URL}/orders/list`;
 const ORDER_GET_URL  = `${BACKEND_BASE_URL}/orders/get`;
 const DELETE_ORDER_URL = `${BACKEND_BASE_URL}/orders/delete`;
 
@@ -1229,7 +1228,7 @@ async function loadOrder(order) {
   }
 
   const res = await fetch(
-  `${ORDER_GET_URL}?orderId=${encodeURIComponent(order.orderId)}`,
+  `${ORDER_GET_URL}?orderId=${encodeURIComponent(order.orderId)}&accountId=${encodeURIComponent(window.currentAccountId)}`,
   {
     cache: "no-store",
     headers: {
