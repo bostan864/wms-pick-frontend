@@ -1946,13 +1946,15 @@ window.currentAccountId = null;
    LOAD CURRENT ACCOUNT
    ===================== */
 async function loadCurrentAccount() {
-  const { data: { user }, error: userError } =
-    await window.supabaseClient.auth.getUser();
+  const { data: { session } } =
+    await window.supabaseClient.auth.getSession();
 
-  if (userError || !user) {
-    console.warn("Nu există user logat");
+  if (!session) {
+    console.warn("Nu există sesiune activă");
     return;
   }
+
+  const user = session.user;
 
   const { data, error } = await window.supabaseClient
     .from("user_accounts")
@@ -1967,8 +1969,8 @@ async function loadCurrentAccount() {
 
   window.currentAccountId = data.account_id;
   console.log("ACCOUNT ACTIV:", window.currentAccountId);
-// ⬇️⬇️⬇️ ADAUGĂ DOAR LINIA ASTA ⬇️⬇️⬇️
-  loadDailyStats();
+
+  await loadDailyStats();
 }
 
 /* =====================
