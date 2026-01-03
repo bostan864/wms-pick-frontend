@@ -6,7 +6,7 @@
 <script>
 window.APP_CONFIG = {
   SUPABASE_URL: "https://yvmqfsigxecmrygmbolg.supabase.co",
-  SUPABASE_ANON_KEY: "PUBLIC_ANON_KEY"
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2bXFmc2lneGVjbXJ5Z21ib2xnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwNDQ0MzgsImV4cCI6MjA3NTYyMDQzOH0.b9MXrgxADVZGvdFaKFQggD-vMd0ayZ9hX4_PmYOzrfE"
 };
 
 const API_BASE = "https://oyster-app-XXXX.ondigitalocean.app";
@@ -1858,7 +1858,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   qs.btn.addEventListener("click", qsRunSearch);
   qs.close.addEventListener("click", closeQS);
-  qs.overlay.addEventListener("click", (e) => { if (e.target === qs.overlay) closeQS(); });
+  qs.overlay.addEventListener("click", (e) => { 
+    if (e.target === qs.overlay) closeQS(); 
+  });
 
   qs.input.addEventListener("input", qsHandleInput);
   qs.input.addEventListener("keydown", (e) => {
@@ -1870,16 +1872,21 @@ document.addEventListener("DOMContentLoaded", () => {
     setActiveNav("btnHome");
     refreshHome();
   });
+
   document.getElementById("btnOrders").addEventListener("click", () => {
     setActiveNav("btnOrders");
     toggleOrdersPanel();
   });
+
   document.getElementById("btnSearch").addEventListener("click", () => {
     setActiveNav("btnSearch");
     openQS();
   });
 
-  loadOrders({silent:true});
+  /* 🔒 FIX MINIM: rulează DOAR dacă există account */
+  if (window.currentAccountId) {
+    loadOrders({ silent: true });
+  }
 });
 
 document.getElementById("btnReception").addEventListener("click", () => {
@@ -1920,11 +1927,17 @@ function showReceptionPanel() {
   }, 80);
 }
 
-
-/* refresh automat la 30 sec */
-setInterval(() => loadOrders({silent:true}), 30000);
+/* refresh automat la 30 sec – FIX MINIM */
+setInterval(() => {
+  if (window.currentAccountId) {
+    loadOrders({ silent: true });
+  }
+}, 30000);
 </script>
 <script>
+/* =====================
+   OVERLAY HELPERS (GLOBAL)
+   ===================== */
 function hideOverlay(overlay) {
   if (!overlay) return;
   overlay.style.display = "none";
