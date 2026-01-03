@@ -1424,7 +1424,8 @@ if (eanMatch.scanned < eanMatch.qty) {
   feedbackSuccess();
   updateProductRow(eanMatch);
   highlightNextRow();
-  checkFinishButton(); // ✅ ASTA LIPSEA
+  updateFinishButton(); // ✅ ASTA LIPSEA
+}
 }
 /* ===================== BUILD TABLE (ONCE) ====================== */
 function buildProductsTableOnce() {
