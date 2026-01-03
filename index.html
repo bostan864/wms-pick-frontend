@@ -984,6 +984,9 @@ let timerInterval = null;
 let orderStartTime = null;
 let currentAccountId = null;
 let productRowMap = new Map(); // produs -> <tr>
+let lastOrdersFetch = 0;
+const ORDERS_CACHE_TTL = 5000; // 5 secunde
+
 
 /* ===================== HELPER: DATE KEY ====================== */
 function getTodayKey() {
@@ -1166,15 +1169,19 @@ function updateStats() {
 }
 
 /* ===================== LOAD ORDERS ====================== */
-async function loadOrders({ silent = false } = {}) {
+async function loadOrders({ silent = false, force = false } = {}) {
+  const now = Date.now();
+
+  if (!force && now - lastOrdersFetch < ORDERS_CACHE_TTL) {
+    return;
+  }
+
+  lastOrdersFetch = now;
   try {
     const { data: { session } } =
       await window.supabaseClient.auth.getSession();
 
-    if (!session) {
-      console.warn("Nu există sesiune activă");
-      return;
-    }
+    if (!session) return;
 
     const res = await fetch(ORDER_LIST_URL, {
       cache: "no-store",
@@ -1183,8 +1190,9 @@ async function loadOrders({ silent = false } = {}) {
       },
     });
 
+    if (!res.ok) throw new Error("Orders fetch failed");
+
     const orders = await res.json();
-    console.log("Comenzi încărcate:", orders);
 
     allOrders = Array.isArray(orders) ? orders : [];
     updateStats();
@@ -1192,6 +1200,7 @@ async function loadOrders({ silent = false } = {}) {
     if (document.getElementById("ordersPanel").classList.contains("open")) {
       renderOrdersPanel();
     }
+
   } catch (err) {
     console.error(err);
     if (!silent) alert("Eroare la încărcarea comenzilor!");
@@ -1515,15 +1524,15 @@ function startCameraScan() {
     { facingMode: "environment" },
     { fps: 10, qrbox: { width: 260, height: 160 } },
     (decodedText) => {
-      document.getElementById("scanInput").value = decodedText;
-      handleScan({ key: "Enter", target: { value: decodedText } });
+  handleScanValue(decodedText);
 
-      html5QrCode.stop().then(() => {
-        div.style.display = "none";
-      }).catch(() => {
-        div.style.display = "none";
-      });
-    }
+  html5QrCode.stop().then(() => {
+    div.style.display = "none";
+  }).catch(() => {
+    div.style.display = "none";
+  });
+}
+
   ).catch(err => {
     console.error(err);
     alert("Camera nu a putut porni. Verifică permisiunile.");
@@ -1678,13 +1687,18 @@ function closeOrdersPanel() {
   document.getElementById("ordersPanel").classList.remove("open");
 }
 
-function toggleOrdersPanel(){
+async function toggleOrdersPanel() {
   const panel = document.getElementById("ordersPanel");
+
   if (panel.classList.contains("open")) {
     closeOrdersPanel();
-  } else {
-    openOrdersPanel();
+    return;
   }
+
+  // 🔥 FORȚĂM reload comenzi înainte de afișare
+  await loadOrders({ silent: true, force: true });
+
+  openOrdersPanel();
 }
 
 function renderOrdersPanel() {
@@ -1797,7 +1811,7 @@ function setActiveNav(id){
 }
 
 /* ===================== HOME REFRESH ====================== */
-function refreshHome(){
+function refreshHome() {
   closeOrdersPanel();
   closeQS();
 
@@ -1809,42 +1823,18 @@ function refreshHome(){
   document.getElementById("orderMeta").style.display = "none";
   document.querySelector("#productsTable tbody").innerHTML = "";
 
-  const scanInput = document.getElementById("scanInput");
-   disableScanInput();
+  // 🔥 RESTABILIRE UI
+  document.getElementById("productsTable").style.display = "table";
+  document.getElementById("scanInput").style.display = "block";
+  document.getElementById("cameraBtn").style.display = "block";
 
+  enableScanInput(); // 🔑 OBLIGATORIU
 
   const btn = document.getElementById("finishBtn");
   btn.style.display = "none";
   btn.classList.remove("active");
 
-  loadOrders({ silent: true });
-  updateStats();
-  feedbackSuccess();
-}
-async function resetAfterOrderAction({ silent = false } = {}) {
-  console.log("🔄 Reset WMS after order action");
-
-  // reset context comandă
-  currentProducts = [];
-  currentOrderId = null;
-
-  stopTimer();
-
-  // reset UI comandă
-  document.getElementById("orderTitle").textContent = "";
-  document.getElementById("orderMeta").style.display = "none";
-  document.querySelector("#productsTable tbody").innerHTML = "";
-
-  const scanInput = document.getElementById("scanInput");
-  disableScanInput();
-
-
-  const finishBtn = document.getElementById("finishBtn");
-  finishBtn.style.display = "none";
-  finishBtn.classList.remove("active");
-
-  // 🔥 ADEVĂRUL: refetch + recalc
-  await loadOrders({ silent });
+  loadOrders({ silent: true, force: true });
   updateStats();
 }
 
@@ -1926,6 +1916,14 @@ function showReceptionPanel() {
     }
   }, 80);
 }
+function disableScanInput() {
+  const scanInput = document.getElementById("scanInput");
+  if (!scanInput) return;
+
+  scanInput.value = "";
+  scanInput.blur();
+  scanInput.disabled = true;
+}
 
 /* refresh automat la 30 sec – FIX MINIM */
 setInterval(() => {
@@ -1933,6 +1931,7 @@ setInterval(() => {
     loadOrders({ silent: true });
   }
 }, 30000);
+
 </script>
 <script>
 /* =====================
@@ -1981,9 +1980,11 @@ async function loadCurrentAccount() {
   }
 
   window.currentAccountId = data.account_id;
-  console.log("ACCOUNT ACTIV:", window.currentAccountId);
+console.log("ACCOUNT ACTIV:", window.currentAccountId);
 
-  await loadDailyStats();
+await loadDailyStats();
+await loadOrders({ silent: true, force: true }); // 🔥 ASTA LIPSEA
+
 }
 
 /* =====================
