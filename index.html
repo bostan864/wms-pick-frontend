@@ -1420,15 +1420,55 @@ function handleScanValue(rawValue) {
   }
 
   const scannedVariants = generateScanVariants(raw);
+// =====================
+// 1️⃣ ÎNCERCARE SKU – MATCH EXACT
+// =====================
+const skuMatch = currentProducts.find(p => {
+  if (!p.sku) return false;
 
-  const found = currentProducts.find(p => {
-    const skuVariants = generateScanVariants(p.sku);
-    const eanVariants = generateScanVariants(p.ean);
+  const skuNorm = String(p.sku).replace(/\D/g, "").replace(/^0+/, "");
+  return scannedVariants.includes(skuNorm);
+});
 
-    return scannedVariants.some(v =>
-      skuVariants.includes(v) || eanVariants.includes(v)
-    );
-  });
+if (skuMatch) {
+  if (skuMatch.scanned < skuMatch.qty) {
+    skuMatch.scanned++;
+    feedbackSuccess();
+    updateProductRow(skuMatch);
+    highlightNextRow();
+    return;
+  } else {
+    feedbackError();
+    flashError();
+    return;
+  }
+}
+
+// =====================
+// 2️⃣ ÎNCERCARE EAN – MATCH TOLERANT
+// =====================
+const eanMatch = currentProducts.find(p => {
+  if (!p.ean) return false;
+
+  const eanVariants = generateScanVariants(p.ean);
+  return scannedVariants.some(v => eanVariants.includes(v));
+});
+
+if (!eanMatch) {
+  feedbackError();
+  flashError();
+  return;
+}
+
+if (eanMatch.scanned < eanMatch.qty) {
+  eanMatch.scanned++;
+  feedbackSuccess();
+  updateProductRow(eanMatch);
+  highlightNextRow();
+} else {
+  feedbackError();
+  flashError();
+}
 
   if (!found) {
     feedbackError();
