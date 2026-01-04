@@ -2022,7 +2022,15 @@ const scanResultReception = document.getElementById("scanResultReception");
 let receptionScanTimer = null;
 
 /* ===================== UTIL ===================== */
-function normalize(code) {
+function normalizeSKU(code) {
+  if (!code) return "";
+  return String(code)
+    .replace(/^\]C1/, "")
+    .trim()
+    .toUpperCase(); // SKU = text
+}
+
+function normalizeEAN(code) {
   if (!code) return "";
   return String(code)
     .replace(/^\]C1/, "")
@@ -2030,50 +2038,78 @@ function normalize(code) {
     .replace(/^0+/, "");
 }
 
-/* ===================== FETCH LOCAȚIE ===================== */
+/* ===================== FETCH LOCAȚIE (CORECT) ===================== */
 async function fetchReceptionLocation(rawCode) {
   scanResultReception.innerHTML = "🔍 Caut produsul...";
 
-  const code = normalizeScanInput(rawCode);
-  if (!code) return renderNewProductForm("");
+  if (!rawCode) {
+    renderNewProductForm("");
+    return;
+  }
 
-  // normalizare scanner → 11 cifre
-  const eanNorm = code.replace(/^0+/, "").slice(-11);
+  const raw = String(rawCode).trim();
 
-  /* 1️⃣ SKU */
-  let { data } = await window.supabaseClient
+  const skuCandidate = normalizeSKU(raw);
+  const eanCandidate = normalizeEAN(raw);
+
+  /* =====================
+     1️⃣ SKU – MATCH EXACT (alfanumeric)
+     ===================== */
+  let { data, error } = await window.supabaseClient
     .from("product_locations")
     .select("id, sku, ean, ean_norm, location")
     .eq("account_id", window.currentAccountId)
-    .eq("sku", code)
+    .ilike("sku", skuCandidate)
     .limit(1);
 
-  if (data?.length) return renderExistingProduct(data[0]);
+  if (error) console.error("SKU lookup error:", error);
 
-  /* 2️⃣ EAN complet */
-  ({ data } = await window.supabaseClient
-    .from("product_locations")
-    .select("id, sku, ean, ean_norm, location")
-    .eq("account_id", window.currentAccountId)
-    .eq("ean", code)
-    .limit(1));
+  if (data?.length) {
+    return renderExistingProduct(data[0]);
+  }
 
-  if (data?.length) return renderExistingProduct(data[0]);
+  /* =====================
+     2️⃣ EAN COMPLET (numeric)
+     ===================== */
+  if (eanCandidate) {
+    ({ data, error } = await window.supabaseClient
+      .from("product_locations")
+      .select("id, sku, ean, ean_norm, location")
+      .eq("account_id", window.currentAccountId)
+      .eq("ean", eanCandidate)
+      .limit(1));
 
-  /* 3️⃣ EAN normalizat (11 cifre) */
+    if (error) console.error("EAN lookup error:", error);
+
+    if (data?.length) {
+      return renderExistingProduct(data[0]);
+    }
+  }
+
+  /* =====================
+     3️⃣ EAN NORMALIZAT (11 cifre)
+     ===================== */
+  const eanNorm = eanCandidate.slice(-11);
+
   if (eanNorm.length === 11) {
-    ({ data } = await window.supabaseClient
+    ({ data, error } = await window.supabaseClient
       .from("product_locations")
       .select("id, sku, ean, ean_norm, location")
       .eq("account_id", window.currentAccountId)
       .eq("ean_norm", eanNorm)
       .limit(1));
 
-    if (data?.length) return renderExistingProduct(data[0]);
+    if (error) console.error("EAN_NORM lookup error:", error);
+
+    if (data?.length) {
+      return renderExistingProduct(data[0]);
+    }
   }
 
-  /* ❌ produs nou */
-  renderNewProductForm(code);
+  /* =====================
+     ❌ PRODUS NOU
+     ===================== */
+  renderNewProductForm(skuCandidate);
 }
 
 /* ===================== UI: PRODUS EXISTENT ===================== */
