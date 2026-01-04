@@ -1098,38 +1098,23 @@ async function loadDailyStats() {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  try {
-    const { data, error } = await window.supabaseClient
-      .from("account_daily_stats")
-      .select("done_orders, total_seconds")
-      .eq("account_id", window.currentAccountId) // 🔴 OBLIGATORIU
-      .eq("stat_date", today)
-      .maybeSingle(); // 🔴 CRITIC – NU single()
+  const { data, error } = await window.supabaseClient
+    .from("account_daily_stats")
+    .select("done_orders, total_seconds")
+    .eq("account_id", window.currentAccountId)
+    .eq("stat_date", today)
+    .maybeSingle();
 
-    if (error) {
-      console.warn("Daily stats indisponibile (normal dacă nu există rând)");
-      return;
-    }
+  if (error || !data) return;
 
-    const doneOrders = data?.done_orders ?? 0;
-    const totalSeconds = data?.total_seconds ?? 0;
+  // ✅ comenzi
+  document.getElementById("doneCount").textContent =
+    data.done_orders ?? 0;
 
-    /* comenzi */
-    const doneCountEl = document.getElementById("doneCount");
-    if (doneCountEl) {
-      doneCountEl.textContent = doneOrders;
-    }
-
-    /* timp */
-    const minutes = Math.floor(totalSeconds / 60);
-    const doneTimeEl = document.getElementById("doneTime");
-    if (doneTimeEl) {
-      doneTimeEl.textContent = `Timp: ${minutes} min`;
-    }
-
-  } catch (err) {
-    console.warn("Daily stats load failed:", err);
-  }
+  // ✅ timp
+  const minutes = Math.floor((data.total_seconds ?? 0) / 60);
+  document.getElementById("doneTime").textContent =
+    `Timp: ${minutes} min`;
 }
 
 /* ===================== STATS ====================== */
