@@ -1665,6 +1665,7 @@ function openOrdersPanel() {
   document.getElementById("ordersPanel").classList.add("open");
   renderOrdersPanel();
 }
+
 function closeOrdersPanel() {
   document.getElementById("ordersPanel").classList.remove("open");
 }
@@ -1677,7 +1678,7 @@ async function toggleOrdersPanel() {
     return;
   }
 
-  // 🔥 FORȚĂM reload comenzi înainte de afișare
+  // 🔥 FORȚĂM refresh REAL din backend
   await loadOrders({ silent: true, force: true });
 
   openOrdersPanel();
@@ -1688,29 +1689,45 @@ function renderOrdersPanel() {
   list.innerHTML = "";
 
   if (!allOrders.length) {
-    list.innerHTML = "<div style='padding:16px;color:#666'>Nu există comenzi.</div>";
+    list.innerHTML =
+      "<div style='padding:16px;color:#666'>Nu există comenzi.</div>";
     return;
   }
 
   allOrders.forEach(o => {
     const div = document.createElement("div");
-div.className = "order-row";
+    div.className = "order-row";
 
-div.innerHTML = `
-  <div class="order-left">
-    Comanda #${o.orderId}
-  </div>
-  <button class="cancel-btn" onclick="cancelOrder('${o.orderId}', event)">
-    Anulată
-  </button>
-`;
+    div.innerHTML = `
+      <div class="order-left">
+        Comanda #${o.orderId}
+      </div>
+      <button class="cancel-btn" onclick="cancelOrder('${o.orderId}', event)">
+        Anulată
+      </button>
+    `;
 
-    div.onclick = () => {
+    // ✅ LOAD DOAR DUPĂ REFRESH
+    div.onclick = async () => {
       closeOrdersPanel();
       closeQS();
-      loadOrder(o);
+
+      // 🔥 refresh înainte de load
+      await loadOrders({ silent: true, force: true });
+
+      const freshOrder = allOrders.find(
+        x => String(x.orderId) === String(o.orderId)
+      );
+
+      if (!freshOrder) {
+        alert("Comanda nu mai există");
+        return;
+      }
+
+      loadOrder(freshOrder);
       setActiveNav("btnOrders");
     };
+
     list.appendChild(div);
   });
 }
@@ -1740,13 +1757,6 @@ function closeQS(){
   qs.input.value = "";
   qs.results.innerHTML = "";
   qs.results.classList.remove("show");
-
-  // 🔥 CRITICAL: rearmare scanner DUPĂ ce overlay-ul dispare
-  setTimeout(() => {
-    if (currentOrderId) {
-      enableScanInput();
-    }
-  }, 180);
 }
 
 function renderQSResults(matches){
@@ -1766,9 +1776,20 @@ function renderQSResults(matches){
     div.onclick = () => {
       closeQS();
 
-      // 🔥 loadOrder DUPĂ closeQS (ordinea contează)
-      setTimeout(() => {
-        loadOrder(o);
+      // 🔥 refresh + load CURAT
+      setTimeout(async () => {
+        await loadOrders({ silent: true, force: true });
+
+        const freshOrder = allOrders.find(
+          x => String(x.orderId) === String(o.orderId)
+        );
+
+        if (!freshOrder) {
+          alert("Comanda nu mai există");
+          return;
+        }
+
+        loadOrder(freshOrder);
         setActiveNav("btnSearch");
       }, 50);
     };
@@ -1796,15 +1817,20 @@ function qsRunSearch(){
   const v = (qs.input.value || "").trim();
   if (!v) return;
 
-  const order = allOrders.find(o => String(o.orderId) === v);
-  if (!order) {
-    alert("Comanda nu a fost găsită");
-    return;
-  }
-
   closeQS();
 
-  setTimeout(() => {
+  setTimeout(async () => {
+    await loadOrders({ silent: true, force: true });
+
+    const order = allOrders.find(
+      o => String(o.orderId) === v
+    );
+
+    if (!order) {
+      alert("Comanda nu a fost găsită");
+      return;
+    }
+
     loadOrder(order);
     setActiveNav("btnSearch");
   }, 50);
