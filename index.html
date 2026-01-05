@@ -7,7 +7,7 @@
 window.APP_CONFIG = {
   SUPABASE_URL: "https://yvmqfsigxecmrygmbolg.supabase.co",
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2bXFmc2lneGVjbXJ5Z21ib2xnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwNDQ0MzgsImV4cCI6MjA3NTYyMDQzOH0.b9MXrgxADVZGvdFaKFQggD-vMd0ayZ9hX4_PmYOzrfE"
-};
+}3B
 
 const API_BASE = "https://oyster-app-XXXX.ondigitalocean.app";
 // sau
@@ -1547,7 +1547,7 @@ async function finalizeOrder() {
       (Date.now() - orderStartTime) / 1000
     );
 
-    /* 1️⃣ ȘTERGERE COMANDĂ (flow existent) */
+    /* 1️⃣ ȘTERGERE COMANDĂ */
     const res = await fetch(DELETE_ORDER_URL, {
       method: "POST",
       headers: {
@@ -1565,7 +1565,7 @@ async function finalizeOrder() {
       return;
     }
 
-    /* 2️⃣ CALCUL SUMĂ COMANDĂ */
+    /* 2️⃣ CALCUL SUMĂ */
     const order = allOrders.find(
       o => String(o.orderId) === String(currentOrderId)
     );
@@ -1574,7 +1574,7 @@ async function finalizeOrder() {
       order?.total_amount || order?.subtotal_amount || 0
     );
 
-    /* 3️⃣ 🔥 DAILY STATS – ATOMIC (BANI + TIMP) */
+    /* 3️⃣ DAILY STATS */
     const { error: statsError } = await window.supabaseClient
       .rpc("increment_daily_stats", {
         p_account_id: window.currentAccountId,
@@ -1588,34 +1588,15 @@ async function finalizeOrder() {
 
     alert("Comanda a fost finalizată");
 
-    /* 4️⃣ RESET UI */
-    currentProducts = [];
-    currentOrderId = null;
-
-    stopTimer();
-
-    document.getElementById("orderTitle").textContent = "";
-    document.getElementById("orderMeta").style.display = "none";
-    document.querySelector("#productsTable tbody").innerHTML = "";
-
-    const scanInput = document.getElementById("scanInput");
-    if (scanInput) {
-      scanInput.value = "";
-      scanInput.blur();
-      scanInput.disabled = true;
-    }
-
-    const finishBtn = document.getElementById("finishBtn");
-    finishBtn.style.display = "none";
-    finishBtn.classList.remove("active");
-    finishBtn.disabled = true;
+    /* 4️⃣ RESET TOTAL – FĂRĂ BLOCAJ */
+    resetOrderContext();
 
     closeOrdersPanel();
     closeQS();
 
     /* 5️⃣ REFRESH DATE */
-    await loadOrders({ silent: true });
-    await loadDailyStats();   // 🔑 aici se actualizează timpul + comenzile
+    await loadOrders({ silent: true, force: true });
+    await loadDailyStats();
     updateStats();
 
     setActiveNav("btnHome");
