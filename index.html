@@ -1306,35 +1306,33 @@ async function loadOrder(order) {
 }
 
 /* ===================== SCAN CONTEXT RESET ====================== */
-let scanTimer = null;
-
 function enableScanInput() {
   const scanInput = document.getElementById("scanInput");
   if (!scanInput) return;
 
-  scanInput.disabled = false;
+  // ===== RESET HARD TOTAL =====
   scanInput.value = "";
+  scanInput.disabled = false;
+  scanInput.blur();
 
-  // 🔑 OBLIGATORIU: focus pentru scanner hardware
-  scanInput.focus();
+  // ștergem orice atribut care poate declanșa tastatura
+  scanInput.removeAttribute("readonly");
+  scanInput.removeAttribute("inputmode");
 
-  // 🔕 prevenim tastatura virtuală (NU readonly!)
+  // forțăm mod scanner
+  scanInput.setAttribute("inputmode", "none");
+
+  // 🔥 RESET COMPLET LISTENERS
+  const cleanInput = scanInput.cloneNode(true);
+  scanInput.parentNode.replaceChild(cleanInput, scanInput);
+
+  // atașăm DOAR scanarea automată
+  cleanInput.addEventListener("input", handleScanAuto);
+
+  // 🔑 focus stabil DUPĂ overlay / quick search
   setTimeout(() => {
-    scanInput.setAttribute("inputmode", "none");
-  }, 50);
-
-  // reset listeners (siguranță)
-  scanInput.removeEventListener("input", handleScanAuto);
-  scanInput.addEventListener("input", handleScanAuto);
-
-  // ✋ tastare manuală DOAR la click intenționat
-  if (!scanInput.dataset.manualEnabled) {
-    scanInput.addEventListener("click", function () {
-      this.removeAttribute("inputmode");
-      this.focus();
-    });
-    scanInput.dataset.manualEnabled = "1";
-  }
+    cleanInput.focus({ preventScroll: true });
+  }, 120);
 }
 
 /* ===================== SCAN AUTO (HONEYWELL) ====================== */
@@ -1529,7 +1527,7 @@ function startCameraScan() {
 function resetOrderContext() {
   console.log("🔄 Reset order context");
 
-  /* ===== LOGIC ===== */
+  // ===== LOGIC =====
   currentProducts = [];
   currentOrderId = null;
   productRowMap.clear();
@@ -1537,14 +1535,14 @@ function resetOrderContext() {
   stopTimer();
   orderStartTime = null;
 
-  /* ===== UI ===== */
+  // ===== UI =====
   document.getElementById("orderTitle").textContent = "";
   document.getElementById("orderMeta").style.display = "none";
 
   const tbody = document.querySelector("#productsTable tbody");
   if (tbody) tbody.innerHTML = "";
 
-  /* ===== FINISH BUTTON ===== */
+  // ===== FINISH BUTTON =====
   const finishBtn = document.getElementById("finishBtn");
   if (finishBtn) {
     finishBtn.style.display = "none";
@@ -1552,11 +1550,8 @@ function resetOrderContext() {
     finishBtn.disabled = true;
   }
 
-  /* ===== SCAN INPUT =====
-     🔒 IMPORTANT:
-     Scanarea este DEZACTIVATĂ până când se încarcă o comandă
-     (enableScanInput() este apelat DOAR din loadOrder)
-  */
+  // ===== SCAN INPUT =====
+  // 🔒 scanarea rămâne OPRITĂ până la loadOrder()
   const scanInput = document.getElementById("scanInput");
   if (scanInput) {
     scanInput.value = "";
@@ -1564,14 +1559,7 @@ function resetOrderContext() {
     scanInput.disabled = true;
   }
 
-  /* ===== UI VISIBILITY RESET ===== */
-  const table = document.getElementById("productsTable");
-  if (table) table.style.display = "table";
-
-  const cameraBtn = document.getElementById("cameraBtn");
-  if (cameraBtn) cameraBtn.style.display = "block";
-
-  console.log("✅ Order context reset complet. Așteaptă selectarea unei comenzi.");
+  console.log("✅ Order reset complet. Așteaptă selectarea comenzii.");
 }
 
 /* ===================== FINALIZE ORDER ====================== */
