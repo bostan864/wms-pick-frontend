@@ -1582,7 +1582,7 @@ async function finalizeOrder() {
       return;
     }
 
-    /* ⏱️ 0️⃣ CALCUL TIMP COMANDĂ (SECUNDE) */
+    /* ⏱️ CALCUL TIMP COMANDĂ */
     const durationSeconds = Math.floor(
       (Date.now() - orderStartTime) / 1000
     );
@@ -1605,7 +1605,7 @@ async function finalizeOrder() {
       return;
     }
 
-    /* 2️⃣ CALCUL SUMĂ */
+    /* 2️⃣ SUMĂ COMANDĂ */
     const order = allOrders.find(
       o => String(o.orderId) === String(currentOrderId)
     );
@@ -1628,22 +1628,12 @@ async function finalizeOrder() {
 
     alert("Comanda a fost finalizată");
 
-    /* 4️⃣ RESET CONTEXT COMANDĂ */
-    resetOrderContext();
+    /* ==================================================
+       🔥 HARD RESET – EXACT CA LA INTRAREA ÎN APLICAȚIE
+       ================================================== */
+    refreshHome();   // 👈 ASTA era buba
 
-    closeOrdersPanel();
-    closeQS();
-
-    /* 🔑 FIXUL REAL – RUPE STAREA VECHE */
-    setTimeout(() => {
-      const scanInput = document.getElementById("scanInput");
-      if (scanInput) {
-        scanInput.value = "";
-        scanInput.blur(); // 🔥 asta lipsea
-      }
-    }, 50);
-
-    /* 5️⃣ REFRESH DATE */
+    /* 4️⃣ REFRESH DATE */
     await loadOrders({ silent: true, force: true });
     await loadDailyStats();
     updateStats();
