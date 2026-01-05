@@ -1310,29 +1310,22 @@ function enableScanInput() {
   const scanInput = document.getElementById("scanInput");
   if (!scanInput) return;
 
-  // ===== RESET HARD TOTAL =====
+  // ===== RESET CONTROLAT (SAFE) =====
   scanInput.value = "";
   scanInput.disabled = false;
-  scanInput.blur();
 
-  // ștergem orice atribut care poate declanșa tastatura
-  scanInput.removeAttribute("readonly");
-  scanInput.removeAttribute("inputmode");
-
-  // forțăm mod scanner
+  // prevenim tastatura
   scanInput.setAttribute("inputmode", "none");
+  scanInput.removeAttribute("readonly");
 
-  // 🔥 RESET COMPLET LISTENERS
-  const cleanInput = scanInput.cloneNode(true);
-  scanInput.parentNode.replaceChild(cleanInput, scanInput);
+  // ===== LISTENERS (UN SINGURUL) =====
+  scanInput.removeEventListener("input", handleScanAuto);
+  scanInput.addEventListener("input", handleScanAuto);
 
-  // atașăm DOAR scanarea automată
-  cleanInput.addEventListener("input", handleScanAuto);
-
-  // 🔑 focus stabil DUPĂ overlay / quick search
+  // ===== FOCUS REAL (post Quick Search) =====
   setTimeout(() => {
-    cleanInput.focus({ preventScroll: true });
-  }, 120);
+    scanInput.focus();
+  }, 100);
 }
 
 /* ===================== SCAN AUTO (HONEYWELL) ====================== */
@@ -1750,13 +1743,24 @@ function openQS(){
   qs.input.value = "";
   qs.results.innerHTML = "";
   qs.results.classList.remove("show");
-  setTimeout(() => qs.input.focus(), 60);
+
+  setTimeout(() => {
+    qs.input.focus();
+  }, 60);
 }
+
 function closeQS(){
   qs.overlay.classList.remove("active");
   qs.input.value = "";
   qs.results.innerHTML = "";
   qs.results.classList.remove("show");
+
+  // 🔥 CRITICAL: rearmare scanner DUPĂ ce overlay-ul dispare
+  setTimeout(() => {
+    if (currentOrderId) {
+      enableScanInput();
+    }
+  }, 180);
 }
 
 function renderQSResults(matches){
@@ -1765,17 +1769,24 @@ function renderQSResults(matches){
     qs.results.classList.remove("show");
     return;
   }
+
   qs.results.classList.add("show");
 
   matches.slice(0, 10).forEach(o => {
     const div = document.createElement("div");
     div.className = "quick-search-item";
     div.textContent = `Comanda #${o.orderId}`;
+
     div.onclick = () => {
       closeQS();
-      loadOrder(o);
-      setActiveNav("btnSearch");
+
+      // 🔥 loadOrder DUPĂ closeQS (ordinea contează)
+      setTimeout(() => {
+        loadOrder(o);
+        setActiveNav("btnSearch");
+      }, 50);
     };
+
     qs.results.appendChild(div);
   });
 }
@@ -1787,7 +1798,11 @@ function qsHandleInput(){
     qs.results.classList.remove("show");
     return;
   }
-  const matches = allOrders.filter(o => String(o.orderId).includes(v));
+
+  const matches = allOrders.filter(o =>
+    String(o.orderId).includes(v)
+  );
+
   renderQSResults(matches);
 }
 
@@ -1802,8 +1817,11 @@ function qsRunSearch(){
   }
 
   closeQS();
-  loadOrder(order);
-  setActiveNav("btnSearch");
+
+  setTimeout(() => {
+    loadOrder(order);
+    setActiveNav("btnSearch");
+  }, 50);
 }
 
 /* ===================== NAV STATE ====================== */
