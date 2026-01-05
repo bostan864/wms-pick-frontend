@@ -1306,28 +1306,35 @@ async function loadOrder(order) {
 }
 
 /* ===================== SCAN CONTEXT RESET ====================== */
+let scanTimer = null;
+
 function enableScanInput() {
   const scanInput = document.getElementById("scanInput");
   if (!scanInput) return;
 
-  // ===== RESET HARD =====
-  scanInput.value = "";
   scanInput.disabled = false;
+  scanInput.value = "";
 
-  // 🔑 FOARTE IMPORTANT
-  // NU folosim inputmode="none" aici
-  // Scannerul hardware are nevoie de input NORMAL
-  scanInput.removeAttribute("readonly");
-  scanInput.removeAttribute("inputmode");
+  // 🔑 OBLIGATORIU: focus pentru scanner hardware
+  scanInput.focus();
 
-  // ===== LISTENER UNIC =====
+  // 🔕 prevenim tastatura virtuală (NU readonly!)
+  setTimeout(() => {
+    scanInput.setAttribute("inputmode", "none");
+  }, 50);
+
+  // reset listeners (siguranță)
   scanInput.removeEventListener("input", handleScanAuto);
   scanInput.addEventListener("input", handleScanAuto);
 
-  // ===== FOCUS REAL (scanner hardware) =====
-  setTimeout(() => {
-    scanInput.focus();
-  }, 150);
+  // ✋ tastare manuală DOAR la click intenționat
+  if (!scanInput.dataset.manualEnabled) {
+    scanInput.addEventListener("click", function () {
+      this.removeAttribute("inputmode");
+      this.focus();
+    });
+    scanInput.dataset.manualEnabled = "1";
+  }
 }
 
 /* ===================== SCAN AUTO (HONEYWELL) ====================== */
