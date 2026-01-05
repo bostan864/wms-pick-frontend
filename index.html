@@ -1524,21 +1524,27 @@ function startCameraScan() {
   });
 }
 /* =====================
-   RESET ORDER CONTEXT – SINGLE SOURCE OF TRUTH
+   RESET ORDER CONTEXT – FINAL / STABIL
    ===================== */
 function resetOrderContext() {
+  console.log("🔄 Reset order context");
+
+  /* ===== LOGIC ===== */
   currentProducts = [];
   currentOrderId = null;
   productRowMap.clear();
 
   stopTimer();
+  orderStartTime = null;
 
+  /* ===== UI ===== */
   document.getElementById("orderTitle").textContent = "";
   document.getElementById("orderMeta").style.display = "none";
 
   const tbody = document.querySelector("#productsTable tbody");
   if (tbody) tbody.innerHTML = "";
 
+  /* ===== FINISH BUTTON ===== */
   const finishBtn = document.getElementById("finishBtn");
   if (finishBtn) {
     finishBtn.style.display = "none";
@@ -1546,19 +1552,26 @@ function resetOrderContext() {
     finishBtn.disabled = true;
   }
 
+  /* ===== SCAN INPUT =====
+     🔒 IMPORTANT:
+     Scanarea este DEZACTIVATĂ până când se încarcă o comandă
+     (enableScanInput() este apelat DOAR din loadOrder)
+  */
   const scanInput = document.getElementById("scanInput");
   if (scanInput) {
     scanInput.value = "";
-    scanInput.disabled = false;
-
-    scanInput.removeEventListener("input", handleScanAuto);
-    scanInput.addEventListener("input", handleScanAuto);
-
-    setTimeout(() => {
-      scanInput.focus();
-      scanInput.setAttribute("inputmode", "none");
-    }, 80);
+    scanInput.blur();
+    scanInput.disabled = true;
   }
+
+  /* ===== UI VISIBILITY RESET ===== */
+  const table = document.getElementById("productsTable");
+  if (table) table.style.display = "table";
+
+  const cameraBtn = document.getElementById("cameraBtn");
+  if (cameraBtn) cameraBtn.style.display = "block";
+
+  console.log("✅ Order context reset complet. Așteaptă selectarea unei comenzi.");
 }
 
 /* ===================== FINALIZE ORDER ====================== */
