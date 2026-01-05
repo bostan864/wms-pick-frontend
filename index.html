@@ -1310,22 +1310,24 @@ function enableScanInput() {
   const scanInput = document.getElementById("scanInput");
   if (!scanInput) return;
 
-  // ===== RESET CONTROLAT (SAFE) =====
+  // ===== RESET HARD =====
   scanInput.value = "";
   scanInput.disabled = false;
 
-  // prevenim tastatura
-  scanInput.setAttribute("inputmode", "none");
+  // 🔑 FOARTE IMPORTANT
+  // NU folosim inputmode="none" aici
+  // Scannerul hardware are nevoie de input NORMAL
   scanInput.removeAttribute("readonly");
+  scanInput.removeAttribute("inputmode");
 
-  // ===== LISTENERS (UN SINGURUL) =====
+  // ===== LISTENER UNIC =====
   scanInput.removeEventListener("input", handleScanAuto);
   scanInput.addEventListener("input", handleScanAuto);
 
-  // ===== FOCUS REAL (post Quick Search) =====
+  // ===== FOCUS REAL (scanner hardware) =====
   setTimeout(() => {
     scanInput.focus();
-  }, 100);
+  }, 150);
 }
 
 /* ===================== SCAN AUTO (HONEYWELL) ====================== */
