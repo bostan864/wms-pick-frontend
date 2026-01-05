@@ -1523,6 +1523,43 @@ function startCameraScan() {
     div.style.display = "none";
   });
 }
+/* =====================
+   RESET ORDER CONTEXT – SINGLE SOURCE OF TRUTH
+   ===================== */
+function resetOrderContext() {
+  currentProducts = [];
+  currentOrderId = null;
+  productRowMap.clear();
+
+  stopTimer();
+
+  document.getElementById("orderTitle").textContent = "";
+  document.getElementById("orderMeta").style.display = "none";
+
+  const tbody = document.querySelector("#productsTable tbody");
+  if (tbody) tbody.innerHTML = "";
+
+  const finishBtn = document.getElementById("finishBtn");
+  if (finishBtn) {
+    finishBtn.style.display = "none";
+    finishBtn.classList.remove("active");
+    finishBtn.disabled = true;
+  }
+
+  const scanInput = document.getElementById("scanInput");
+  if (scanInput) {
+    scanInput.value = "";
+    scanInput.disabled = false;
+
+    scanInput.removeEventListener("input", handleScanAuto);
+    scanInput.addEventListener("input", handleScanAuto);
+
+    setTimeout(() => {
+      scanInput.focus();
+      scanInput.setAttribute("inputmode", "none");
+    }, 80);
+  }
+}
 
 /* ===================== FINALIZE ORDER ====================== */
 async function finalizeOrder() {
