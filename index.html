@@ -1529,7 +1529,6 @@ function startCameraScan() {
 function resetOrderContext() {
   console.log("🔄 Reset order context");
 
-  // ===== LOGIC =====
   currentProducts = [];
   currentOrderId = null;
   productRowMap.clear();
@@ -1537,14 +1536,12 @@ function resetOrderContext() {
   stopTimer();
   orderStartTime = null;
 
-  // ===== UI =====
   document.getElementById("orderTitle").textContent = "";
   document.getElementById("orderMeta").style.display = "none";
 
   const tbody = document.querySelector("#productsTable tbody");
   if (tbody) tbody.innerHTML = "";
 
-  // ===== FINISH BUTTON =====
   const finishBtn = document.getElementById("finishBtn");
   if (finishBtn) {
     finishBtn.style.display = "none";
@@ -1552,43 +1549,38 @@ function resetOrderContext() {
     finishBtn.disabled = true;
   }
 
-  // ===== SCAN INPUT =====
-  // 🔒 scanarea rămâne OPRITĂ până la loadOrder()
+  // 🔑 CRITIC: NU blocăm scannerul
   const scanInput = document.getElementById("scanInput");
   if (scanInput) {
     scanInput.value = "";
-    scanInput.blur();
-    scanInput.disabled = true;
+    scanInput.removeEventListener("input", handleScanAuto);
+    scanInput.addEventListener("input", handleScanAuto);
+
+    // focus “soft”, nu forțat
+    setTimeout(() => {
+      scanInput.focus();
+      scanInput.setAttribute("inputmode", "none");
+    }, 100);
   }
 
-  console.log("✅ Order reset complet. Așteaptă selectarea comenzii.");
+  console.log("✅ Reset complet – gata pentru următoarea comandă");
 }
 
 /* ===================== FINALIZE ORDER ====================== */
 async function finalizeOrder() {
-  if (!currentOrderId || !window.currentAccountId) {
-    alert("Comandă sau cont invalid");
-    return;
-  }
+  if (!currentOrderId || !window.currentAccountId) return;
 
   if (!confirm("Finalizezi comanda?")) return;
 
   try {
     const { data: { session } } =
       await window.supabaseClient.auth.getSession();
+    if (!session) return;
 
-    if (!session) {
-      alert("Sesiune invalidă. Reautentifică-te.");
-      return;
-    }
+    const durationSeconds =
+      Math.floor((Date.now() - orderStartTime) / 1000);
 
-    /* ⏱️ TIMP */
-    const durationSeconds = Math.floor(
-      (Date.now() - orderStartTime) / 1000
-    );
-
-    /* 1️⃣ DELETE BACKEND */
-    const res = await fetch(DELETE_ORDER_URL, {
+    await fetch(DELETE_ORDER_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1600,12 +1592,6 @@ async function finalizeOrder() {
       }),
     });
 
-    if (!res.ok) {
-      alert("Eroare la finalizarea comenzii");
-      return;
-    }
-
-    /* 2️⃣ SUMĂ */
     const order = allOrders.find(
       o => String(o.orderId) === String(currentOrderId)
     );
@@ -1614,37 +1600,28 @@ async function finalizeOrder() {
       order?.total_amount || order?.subtotal_amount || 0
     );
 
-    /* 3️⃣ STATS */
-    const { error } = await window.supabaseClient.rpc(
-      "increment_daily_stats",
-      {
-        p_account_id: window.currentAccountId,
-        p_amount: orderAmount,
-        p_seconds: durationSeconds
-      }
-    );
+    await window.supabaseClient.rpc("increment_daily_stats", {
+      p_account_id: window.currentAccountId,
+      p_amount: orderAmount,
+      p_seconds: durationSeconds
+    });
 
-    if (error) console.error(error);
+    // ❌ FĂRĂ alert
+    feedbackSuccess();
 
-    alert("Comanda a fost finalizată");
-
-    /* ✅ UNICUL RESET CORECT */
     resetOrderContext();
 
     closeOrdersPanel();
     closeQS();
 
-    /* 🔑 refresh backend */
     await loadOrders({ silent: true, force: true });
     await loadDailyStats();
     updateStats();
 
     setActiveNav("btnHome");
-    feedbackSuccess();
 
-  } catch (err) {
-    console.error("Finalize order error:", err);
-    alert("Eroare neașteptată la finalizare");
+  } catch (e) {
+    console.error(e);
   }
 }
 /* ===================== CANCEL ORDER ====================== */
