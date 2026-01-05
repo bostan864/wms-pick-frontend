@@ -1587,7 +1587,7 @@ async function finalizeOrder() {
       (Date.now() - orderStartTime) / 1000
     );
 
-    /* 1️⃣ ȘTERGERE COMANDĂ */
+    /* 1️⃣ ȘTERGERE COMANDĂ DIN BACKEND */
     const res = await fetch(DELETE_ORDER_URL, {
       method: "POST",
       headers: {
@@ -1605,7 +1605,7 @@ async function finalizeOrder() {
       return;
     }
 
-    /* 2️⃣ SUMĂ COMANDĂ */
+    /* 2️⃣ CALCUL SUMĂ COMANDĂ */
     const order = allOrders.find(
       o => String(o.orderId) === String(currentOrderId)
     );
@@ -1614,7 +1614,7 @@ async function finalizeOrder() {
       order?.total_amount || order?.subtotal_amount || 0
     );
 
-    /* 3️⃣ DAILY STATS */
+    /* 3️⃣ DAILY STATS (BANI + TIMP) */
     const { error: statsError } = await window.supabaseClient
       .rpc("increment_daily_stats", {
         p_account_id: window.currentAccountId,
@@ -1628,13 +1628,34 @@ async function finalizeOrder() {
 
     alert("Comanda a fost finalizată");
 
-    /* ==================================================
-       🔥 HARD RESET – EXACT CA LA INTRAREA ÎN APLICAȚIE
-       ================================================== */
-    refreshHome();   // 👈 ASTA era buba
+    /* =====================================================
+       🔥 RESET CONTROLAT – IDENTIC CU VARIANTA CARE MERGEA
+       ===================================================== */
 
-    /* 4️⃣ REFRESH DATE */
-    await loadOrders({ silent: true, force: true });
+    // reset stare comandă
+    currentProducts = [];
+    currentOrderId = null;
+    stopTimer();
+
+    // reset UI comandă
+    document.getElementById("orderTitle").textContent = "";
+    document.getElementById("orderMeta").style.display = "none";
+    document.querySelector("#productsTable tbody").innerHTML = "";
+
+    // dezactivăm scanarea până la următoarea comandă
+    disableScanInput();
+
+    // reset buton finalizare
+    const finishBtn = document.getElementById("finishBtn");
+    finishBtn.style.display = "none";
+    finishBtn.classList.remove("active");
+    finishBtn.disabled = true;
+
+    closeOrdersPanel();
+    closeQS();
+
+    /* 🔑 CRITIC PENTRU BACKEND: AȘTEPTĂ REFRESH REAL */
+    await loadOrders({ silent: true });
     await loadDailyStats();
     updateStats();
 
