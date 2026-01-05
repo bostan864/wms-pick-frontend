@@ -1628,11 +1628,20 @@ async function finalizeOrder() {
 
     alert("Comanda a fost finalizată");
 
-    /* 4️⃣ RESET TOTAL – FĂRĂ BLOCAJ */
+    /* 4️⃣ RESET CONTEXT COMANDĂ */
     resetOrderContext();
 
     closeOrdersPanel();
     closeQS();
+
+    /* 🔑 FIXUL REAL – RUPE STAREA VECHE */
+    setTimeout(() => {
+      const scanInput = document.getElementById("scanInput");
+      if (scanInput) {
+        scanInput.value = "";
+        scanInput.blur(); // 🔥 asta lipsea
+      }
+    }, 50);
 
     /* 5️⃣ REFRESH DATE */
     await loadOrders({ silent: true, force: true });
