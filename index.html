@@ -1561,6 +1561,24 @@ function resetOrderContext() {
   console.log("✅ Reset complet – gata pentru următoarea comandă");
 }
 
+/* ===================== SOFT RESET APP ====================== */
+function resetAppToStart() {
+  console.log("🔄 Soft reset app → gata pentru următoarea comandă");
+
+  resetOrderContext();
+  closeOrdersPanel();
+  closeQS();
+
+  loadOrders({ silent: true, force: true });
+  loadDailyStats();
+  updateStats();
+
+  setActiveNav("btnHome");
+
+  setTimeout(() => {
+    enableScanInput(); // 🔥 Scanner gata din prima
+  }, 150);
+}
 
 /* ===================== FINALIZE ORDER ====================== */
 async function finalizeOrder() {
@@ -1605,19 +1623,9 @@ async function finalizeOrder() {
       p_seconds: durationSeconds
     });
 
-    // ✅ UI feedback + curățare
+    // ✅ UI feedback + soft reset complet
     feedbackSuccess();
-    resetOrderContext();
-    closeOrdersPanel();
-    closeQS();
-
-    // 🏠 Navigare spre Home
-    setActiveNav("btnHome");
-
-    // 🔄 Refresh complet – ca să meargă scannerul din prima
-    setTimeout(() => {
-      location.reload(); // 🧨 GARANTAT: focus pe scan, tastatură blocată
-    }, 300);
+    resetAppToStart(); // 🔥 Înlocuiește `location.reload()`
 
   } catch (e) {
     console.error(e);
