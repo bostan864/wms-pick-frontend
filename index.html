@@ -1605,26 +1605,19 @@ async function finalizeOrder() {
       p_seconds: durationSeconds
     });
 
-    // ✅ UI feedback
+    // ✅ UI feedback + curățare
     feedbackSuccess();
-
-    // 🧹 Curățăm contextul comenzii
     resetOrderContext();
     closeOrdersPanel();
     closeQS();
 
-    // 🔄 Reload comenzi + statistici
-    await loadOrders({ silent: true, force: true });
-    await loadDailyStats();
-    updateStats();
-
     // 🏠 Navigare spre Home
     setActiveNav("btnHome");
 
-    // 🔥 Fix garantat pentru scanarea următoarei comenzi
+    // 🔄 Refresh complet – ca să meargă scannerul din prima
     setTimeout(() => {
-      enableScanInput();
-    }, 150);
+      location.reload(); // 🧨 GARANTAT: focus pe scan, tastatură blocată
+    }, 300);
 
   } catch (e) {
     console.error(e);
