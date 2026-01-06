@@ -1534,11 +1534,9 @@ function resetOrderContext() {
   currentOrderId = null;
   productRowMap.clear();
 
-  // ⏱ stop timer
   stopTimer();
   orderStartTime = null;
 
-  // 🧹 UI cleanup
   document.getElementById("orderTitle").textContent = "";
   document.getElementById("orderMeta").style.display = "none";
 
@@ -1552,37 +1550,14 @@ function resetOrderContext() {
     finishBtn.disabled = true;
   }
 
-  /* =====================
-     🔑 SCAN INPUT – FIX REAL
-     ===================== */
-  const scanInput = document.getElementById("scanInput");
-  if (scanInput) {
-    // reset complet input
-    scanInput.disabled = false;
-    scanInput.value = "";
-
-    // 🔥 eliminăm ORICE blocaj rămas
-    scanInput.removeAttribute("readonly");
-    scanInput.removeAttribute("inputmode");
-
-    // reset listeners (sigur)
-    scanInput.removeEventListener("input", handleScanAuto);
-    scanInput.addEventListener("input", handleScanAuto);
-
-    // 🔥 FOCUS GARANTAT pentru următoarea comandă
-    setTimeout(() => {
-      scanInput.focus();
-
-      // 🧠 dacă NU e mobil → blocăm tastatura (scanner hardware)
-      const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-      if (!isMobile) {
-        scanInput.setAttribute("inputmode", "none");
-      }
-    }, 150);
-  }
+  // 🔄 Activăm inputul de scanare după mic delay
+  setTimeout(() => {
+    enableScanInput(); // 🔥 activare focus și fixuri tastatură
+  }, 100);
 
   console.log("✅ Reset complet – gata pentru următoarea comandă");
 }
+
 
 /* ===================== FINALIZE ORDER ====================== */
 async function finalizeOrder() {
