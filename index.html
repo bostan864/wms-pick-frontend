@@ -1315,36 +1315,22 @@ function enableScanInput() {
   scanInput.disabled = false;
   scanInput.value = "";
 
-  // 🔥 prevenim blocaje de stare
-  scanInput.removeAttribute("readonly");
-  scanInput.removeAttribute("inputmode");
+  // 🔒 BLOCĂM tastatura virtuală DEFINITIV
+  scanInput.setAttribute("inputmode", "none");
+  scanInput.setAttribute("readonly", "readonly");
 
-  // 🔑 FOCUS OBLIGATORIU – activează scanarea
-  scanInput.focus();
-
-  // ✅ Prevenim tastatura virtuală doar pe device non-mobile
-  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-  if (!isMobile) {
-    setTimeout(() => {
-      scanInput.setAttribute("inputmode", "none");
-    }, 50);
-  }
-
-  // 🔁 Reatașăm listenerul de scanare
+  // 🔁 reset listeners (FOARTE IMPORTANT)
   scanInput.removeEventListener("input", handleScanAuto);
   scanInput.addEventListener("input", handleScanAuto);
 
-  // 🧠 Refacem manualEnabled dacă e nevoie
-  delete scanInput.dataset.manualEnabled;
+  // ✋ tastare manuală DOAR la click intenționat
+  scanInput.onclick = () => {
+    scanInput.removeAttribute("readonly");
+    scanInput.removeAttribute("inputmode");
+    scanInput.focus(); // AICI e OK → user a cerut
+  };
 
-  // ✋ Permite tastare manuală DOAR la click intenționat
-  scanInput.addEventListener("click", function () {
-    this.removeAttribute("inputmode");
-    this.focus();
-  });
-  scanInput.dataset.manualEnabled = "1";
-
-  console.log("✅ enableScanInput: activat");
+  console.log("✅ Scan input ready – FĂRĂ tastatură");
 }
 
 /* ===================== SCAN AUTO (HONEYWELL) ====================== */
