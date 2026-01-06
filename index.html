@@ -1352,33 +1352,6 @@ function armScanner() {
   console.log("🔫 Scanner armed (safe input handler)");
 }
 
-document.addEventListener("click", (e) => {
-  const scanInput = document.getElementById("scanInput");
-  if (!scanInput) return;
-
-  // ❌ NU refocusăm dacă:
-  // - clickul e în orders panel
-  // - clickul e în quick search
-  // - clickul e în reception
-  // - clickul e pe orice button
-  if (
-    e.target.closest("#ordersPanel") ||
-    e.target.closest("#quickSearchOverlay") ||
-    e.target.closest("#receptionPanel") ||
-    e.target.tagName === "BUTTON"
-  ) {
-    return;
-  }
-
-  // ✅ DOAR în pick mode real
-  if (
-    scanInput.style.display !== "none" &&
-    document.activeElement !== scanInput
-  ) {
-    scanInput.focus({ preventScroll: true });
-  }
-});
-
 function flashError() {
   const input = document.getElementById("scanInput");
   if (!input) return;
