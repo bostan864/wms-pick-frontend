@@ -908,7 +908,6 @@ window.supabaseClient = supabase.createClient(
   spellcheck="false"
 />
 
-
     <!-- Afișare rezultat scanare -->
     <div id="scanResultReception"></div>
 
@@ -1324,36 +1323,47 @@ function armScanner() {
   const scanInput = document.getElementById("scanInput");
   if (!scanInput) return;
 
-  // RESET TOTAL INPUT
-  scanInput.value = "";
   scanInput.disabled = false;
-  scanInput.removeAttribute("readonly");
-  scanInput.removeAttribute("inputmode");
+  scanInput.value = "";
 
-  // SCOATEM ORICE HANDLER VECHI
-  if (scanInput._scanHandler) {
-    scanInput.removeEventListener("input", scanInput._scanHandler);
-  }
+  // focus real (ca înainte)
+  scanInput.focus();
 
+  // blocăm tastatura după focus (ca înainte)
+  setTimeout(() => {
+    scanInput.setAttribute("inputmode", "none");
+  }, 50);
+
+  // scoatem handler vechi
+  scanInput.removeEventListener("input", scanInput._scanHandler);
+
+  // 🔑 AICI ESTE „ENTERUL”
   scanInput._scanHandler = (e) => {
     clearTimeout(scanTimer);
 
     scanTimer = setTimeout(() => {
-      const value = e.target.value;
-      e.target.value = "";
+      const value = scanInput.value.trim();
+      scanInput.value = "";
 
       if (!value) return;
 
+      // 👉 SIMULARE ENTER
       handleScanValue(value);
-    }, 80);
+    }, 120); // mai rapid, ca ENTER
   };
 
   scanInput.addEventListener("input", scanInput._scanHandler);
 
-  // 🔑 FOCUS SIMPLU, FĂRĂ OPȚIUNI
-  scanInput.focus();
+  // tastatură manuală doar la click
+  if (!scanInput.dataset.manualEnabled) {
+    scanInput.addEventListener("click", function () {
+      this.removeAttribute("inputmode");
+      this.focus();
+    });
+    scanInput.dataset.manualEnabled = "1";
+  }
 
-  console.log("🔫 Scanner armed – BASIC MODE");
+  console.log("🔫 armScanner ACTIV – ENTER SIMULAT");
 }
 
 function flashError() {
