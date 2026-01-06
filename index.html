@@ -1356,11 +1356,24 @@ document.addEventListener("click", (e) => {
   const scanInput = document.getElementById("scanInput");
   if (!scanInput) return;
 
-  // ❗ DOAR dacă clickul NU este pe un input / textarea
+  // ❌ NU refocusăm dacă:
+  // - clickul e în orders panel
+  // - clickul e în quick search
+  // - clickul e în reception
+  // - clickul e pe orice button
+  if (
+    e.target.closest("#ordersPanel") ||
+    e.target.closest("#quickSearchOverlay") ||
+    e.target.closest("#receptionPanel") ||
+    e.target.tagName === "BUTTON"
+  ) {
+    return;
+  }
+
+  // ✅ DOAR în pick mode real
   if (
     scanInput.style.display !== "none" &&
-    document.activeElement !== scanInput &&
-    !["INPUT", "TEXTAREA"].includes(e.target.tagName)
+    document.activeElement !== scanInput
   ) {
     scanInput.focus({ preventScroll: true });
   }
