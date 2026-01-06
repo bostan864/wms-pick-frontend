@@ -1327,29 +1327,54 @@ function armScanner() {
   scanInput.value = "";
   scanInput.disabled = false;
 
-  // ❗ NU blocăm tastatura
-  // ❗ NU folosim inputmode
-  // ❗ NU forțăm readonly
+  // 🔥 eliminăm handler vechi dacă există
+  if (scanInput._scanHandler) {
+    scanInput.removeEventListener("input", scanInput._scanHandler);
+  }
 
-  scanInput.focus({ preventScroll: true });
-
-  scanInput.oninput = (e) => {
+  scanInput._scanHandler = (e) => {
     clearTimeout(scanTimer);
 
     scanTimer = setTimeout(() => {
       const value = e.target.value.trim();
-
       e.target.value = "";
 
       if (!value) return;
 
-      // 🔥 ASTA ESTE ENTER-UL TĂU
       handleScanValue(value);
-
-    }, 80); // calibrat pentru scanner
+    }, 80);
   };
 
-  console.log("🔫 Scanner armed (keyboard allowed, scan auto)");
+  scanInput.addEventListener("input", scanInput._scanHandler);
+
+  scanInput.focus({ preventScroll: true });
+
+  console.log("🔫 Scanner armed (safe input handler)");
+}
+
+document.addEventListener("click", (e) => {
+  const scanInput = document.getElementById("scanInput");
+  if (!scanInput) return;
+
+  // ❗ DOAR dacă clickul NU este pe un input / textarea
+  if (
+    scanInput.style.display !== "none" &&
+    document.activeElement !== scanInput &&
+    !["INPUT", "TEXTAREA"].includes(e.target.tagName)
+  ) {
+    scanInput.focus({ preventScroll: true });
+  }
+});
+
+function flashError() {
+  const input = document.getElementById("scanInput");
+  if (!input) return;
+
+  input.classList.add("errorInput");
+
+  setTimeout(() => {
+    input.classList.remove("errorInput");
+  }, 180);
 }
 
 /* ===================== SCAN LOGIC ====================== */
@@ -1576,10 +1601,6 @@ function resetAppToStart() {
 
   setActiveNav("btnHome");
 
-  setTimeout(() => {
-    enableScanInput(); // 🔥 Scanner gata din prima
-  }, 150);
-setTimeout(armScanner, 100);
 }
 
 /* ===================== FINALIZE ORDER ====================== */
@@ -1872,8 +1893,6 @@ function refreshHome() {
   document.getElementById("scanInput").style.display = "block";
   document.getElementById("cameraBtn").style.display = "block";
 
-  enableScanInput(); // 🔑 OBLIGATORIU
-
   const btn = document.getElementById("finishBtn");
   btn.style.display = "none";
   btn.classList.remove("active");
@@ -1959,14 +1978,6 @@ function showReceptionPanel() {
       input.select();
     }
   }, 80);
-}
-function disableScanInput() {
-  const scanInput = document.getElementById("scanInput");
-  if (!scanInput) return;
-
-  scanInput.value = "";
-  scanInput.blur();
-  scanInput.disabled = true;
 }
 
 /* refresh automat la 30 sec – FIX MINIM */
