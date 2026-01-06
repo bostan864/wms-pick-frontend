@@ -1327,7 +1327,11 @@ function armScanner() {
   scanInput.value = "";
   scanInput.disabled = false;
 
-  // 🔥 eliminăm handler vechi dacă există
+  // 🔒 CRITIC: nu permitem tastatura automată
+  scanInput.setAttribute("inputmode", "none");
+  scanInput.setAttribute("readonly", "readonly");
+
+  // 🔁 scoatem handler vechi
   if (scanInput._scanHandler) {
     scanInput.removeEventListener("input", scanInput._scanHandler);
   }
@@ -1347,9 +1351,10 @@ function armScanner() {
 
   scanInput.addEventListener("input", scanInput._scanHandler);
 
-  scanInput.focus({ preventScroll: true });
+  // ❌ FĂRĂ focus aici
+  // scanInput.focus();
 
-  console.log("🔫 Scanner armed (safe input handler)");
+  console.log("🔫 Scanner armed (NO focus, NO keyboard)");
 }
 
 function flashError() {
