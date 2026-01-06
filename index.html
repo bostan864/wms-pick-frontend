@@ -1296,8 +1296,12 @@ async function loadOrder(order) {
   document.getElementById("orderMeta").style.display = "block";
 
   /* ===================== TIMER + TABEL ===================== */
-  startTimer();
-  buildProductsTableOnce();
+startTimer();
+buildProductsTableOnce();
+
+/* 🔫 ARM SCANNER – OBLIGATORIU */
+armScanner();
+
 
   /* ===================== PICK MODE UI ===================== */
   const scanInput = document.getElementById("scanInput");
@@ -1583,7 +1587,6 @@ function resetOrderContext() {
   }
 
   console.log("✅ Reset complet – gata pentru următoarea comandă");
-armScanner();
 
 }
 
@@ -1601,6 +1604,10 @@ function resetAppToStart() {
 
   setActiveNav("btnHome");
 
+  // 🔑 REARMARE SCANNER – OBLIGATORIU
+  setTimeout(() => {
+    armScanner();
+  }, 200);
 }
 
 /* ===================== FINALIZE ORDER ====================== */
