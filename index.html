@@ -908,6 +908,7 @@ window.supabaseClient = supabase.createClient(
   spellcheck="false"
 />
 
+
     <!-- Afișare rezultat scanare -->
     <div id="scanResultReception"></div>
 
@@ -1197,9 +1198,9 @@ async function loadOrders({ silent = false, force = false } = {}) {
 /* ===================== LOAD SINGLE ORDER ====================== */
 async function loadOrder(order) {
   if (!order || !order.orderId) {
-    alert("Comandă invalidă");
-    return;
-  }
+  alert("Comandă invalidă");
+  return;
+}
 
   currentOrderId = String(order.orderId);
 
@@ -1212,14 +1213,14 @@ async function loadOrder(order) {
   }
 
   const res = await fetch(
-    `${ORDER_GET_URL}?orderId=${encodeURIComponent(order.orderId)}&accountId=${encodeURIComponent(window.currentAccountId)}`,
-    {
-      cache: "no-store",
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-      },
-    }
-  );
+  `${ORDER_GET_URL}?orderId=${encodeURIComponent(order.orderId)}&accountId=${encodeURIComponent(window.currentAccountId)}`,
+  {
+    cache: "no-store",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  }
+);
 
   if (!res.ok) {
     alert("Eroare la încărcarea comenzii");
@@ -1228,12 +1229,10 @@ async function loadOrder(order) {
 
   const data = await res.json();
 
-  /* ===================== PRODUSE (FĂRĂ PRESUPUNERI) ===================== */
-  const products = Array.isArray(data.line_items)
-    ? data.line_items
-    : [];
+  const products = (data.line_items || [])
+    .filter(p => p.item_type === "product");
 
-  /* ===================== SKU LIST ===================== */
+  /* ===================== 1️⃣ SKU LIST ===================== */
   const skuList = [
     ...new Set(
       products
@@ -1242,7 +1241,7 @@ async function loadOrder(order) {
     )
   ];
 
-  /* ===================== LOCAȚII DIN DB ===================== */
+  /* ===================== 2️⃣ LOCAȚII DIN DB ===================== */
   let locationMap = new Map();
 
   if (skuList.length) {
@@ -1263,7 +1262,7 @@ async function loadOrder(order) {
     }
   }
 
-  /* ===================== CONSTRUIRE currentProducts ===================== */
+  /* ===================== 3️⃣ CONSTRUIRE PRODUSE ===================== */
   currentProducts = products.map(p => {
     const originalSku = p.product_sku || "";
     const lookupSku = String(originalSku).replace(/^0+/, "");
@@ -1272,7 +1271,7 @@ async function loadOrder(order) {
       sku: originalSku,
       ean: p.product_ean,
       name: p.product_name,
-      qty: Number(p.quantity) || 0,
+      qty: Number(p.quantity),
       shelf: locationMap.get(lookupSku) || "Fără locație",
       scanned: 0
     };
@@ -1286,7 +1285,7 @@ async function loadOrder(order) {
     return String(a.shelf).localeCompare(String(b.shelf));
   });
 
-  /* ===================== UI COMANDĂ ===================== */
+  /* ===================== UI ===================== */
   document.getElementById("orderTitle").textContent =
     "Comanda #" + currentOrderId;
 
@@ -1295,62 +1294,40 @@ async function loadOrder(order) {
 
   document.getElementById("orderMeta").style.display = "block";
 
-  /* ===================== TIMER + TABEL ===================== */
-startTimer();
-buildProductsTableOnce();
-
-/* 🔫 ARM SCANNER – OBLIGATORIU */
-recreateScanInput();
-armScanner();
-
-
-  /* ===================== PICK MODE UI ===================== */
   const scanInput = document.getElementById("scanInput");
-  const productsTable = document.getElementById("productsTable");
-  const cameraBtn = document.getElementById("cameraBtn");
+  enableScanInput();
 
-  if (scanInput) scanInput.style.display = "block";
-  if (productsTable) productsTable.style.display = "table";
-  if (cameraBtn) cameraBtn.style.display = "block";
+// 🔥 REACTIVARE SCANARE
 
-  /* ===================== ARM SCANNER ===================== */
+  startTimer();
+  buildProductsTableOnce();
 
   console.log("✅ Comandă încărcată:", currentOrderId);
 }
 
-
-/* ===================== armare scanner ====================== */
-
+/* ===================== SCAN CONTEXT RESET ====================== */
 let scanTimer = null;
 
-function armScanner() {
+function enableScanInput() {
   const scanInput = document.getElementById("scanInput");
   if (!scanInput) return;
 
   scanInput.disabled = false;
   scanInput.value = "";
 
-  // scoatem handler vechi
-  scanInput.removeEventListener("input", scanInput._scanHandler);
+  // 🔑 Focus real imediat
+  scanInput.focus();
 
-  // 🔑 AICI ESTE „ENTERUL”
-  scanInput._scanHandler = (e) => {
-    clearTimeout(scanTimer);
+  // 🔕 Previne tastatura (dar păstrează focusul)
+  setTimeout(() => {
+    scanInput.setAttribute("inputmode", "none");
+  }, 50);
 
-    scanTimer = setTimeout(() => {
-      const value = scanInput.value.trim();
-      scanInput.value = "";
+  // 🎯 Reatașează handlerul de scanare
+  scanInput.removeEventListener("input", handleScanAuto);
+  scanInput.addEventListener("input", handleScanAuto);
 
-      if (!value) return;
-
-      // 👉 SIMULARE ENTER
-      handleScanValue(value);
-    }, 120); // mai rapid, ca ENTER
-  };
-
-  scanInput.addEventListener("input", scanInput._scanHandler);
-
-  // tastatură manuală doar la click
+  // ✋ Tastatură manuală doar la click
   if (!scanInput.dataset.manualEnabled) {
     scanInput.addEventListener("click", function () {
       this.removeAttribute("inputmode");
@@ -1358,41 +1335,22 @@ function armScanner() {
     });
     scanInput.dataset.manualEnabled = "1";
   }
-
-  console.log("🔫 armScanner ACTIV – ENTER SIMULAT");
-}
-function recreateScanInput() {
-  const old = document.getElementById("scanInput");
-  if (!old) return;
-
-  const parent = old.parentNode;
-
-  // 🔥 distrugem complet inputul vechi
-  old.remove();
-
-  // 🔥 creăm unul NOU (virgin pentru HID)
-  const input = document.createElement("input");
-  input.id = "scanInput";
-  input.placeholder = "Scanează EAN / SKU...";
-  input.autocomplete = "off";
-  input.autocorrect = "off";
-  input.autocapitalize = "off";
-  input.spellcheck = false;
-
-  parent.prepend(input);
-
-  console.log("♻️ scanInput recreat complet");
 }
 
-function flashError() {
-  const input = document.getElementById("scanInput");
-  if (!input) return;
+/* ===================== SCAN AUTO (HONEYWELL) ====================== */
+function handleScanAuto(e) {
+  clearTimeout(scanTimer);
 
-  input.classList.add("errorInput");
+  scanTimer = setTimeout(() => {
+    const rawValue = (e.target.value || "").trim();
 
-  setTimeout(() => {
-    input.classList.remove("errorInput");
-  }, 180);
+    // se golește MEREU
+    e.target.value = "";
+
+    if (!rawValue) return;
+
+    handleScanValue(rawValue);
+  }, 180); // timing stabil Honeywell
 }
 
 /* ===================== SCAN LOGIC ====================== */
@@ -1591,8 +1549,16 @@ function resetOrderContext() {
     finishBtn.disabled = true;
   }
 
-  console.log("✅ Reset complet – gata pentru următoarea comandă");
+  // 🧠 NU mai punem delay aiurea aici – doar curățare
+  const scanInput = document.getElementById("scanInput");
+  if (scanInput) {
+    scanInput.disabled = false;               // ✅ activat
+    scanInput.value = "";
+    scanInput.removeAttribute("readonly");    // ✅ sigur
+    scanInput.removeAttribute("inputmode");   // ✅ ca să apară tastatura
+  }
 
+  console.log("✅ Reset complet – gata pentru următoarea comandă");
 }
 
 /* ===================== FINALIZE ORDER ====================== */
@@ -1638,22 +1604,22 @@ async function finalizeOrder() {
       p_seconds: durationSeconds
     });
 
-    // ✅ UI feedback
-feedbackSuccess();
+    // ✅ UI feedback + curățare
+    feedbackSuccess();
+    resetOrderContext();
+    closeOrdersPanel();
+    closeQS();
 
-// ✅ reset logic (fără reload)
-resetOrderContext();
-closeOrdersPanel();
-closeQS();
-setActiveNav("btnHome");
+    // 🏠 Navigare spre Home
+    setActiveNav("btnHome");
 
-// 🔥 RECREARE + REARMARE SCANNER (CHEIA)
-setTimeout(() => {
-  recreateScanInput();
-  armScanner();
-}, 150);
+    // 🔄 Refresh complet – ca să meargă scannerul din prima
+    setTimeout(() => {
+      location.reload(); // 🧨 GARANTAT: focus pe scan, tastatură blocată
+    }, 300);
 
-
+  } catch (e) {
+    console.error(e);
   }
 }
 /* ===================== CANCEL ORDER ====================== */
@@ -1893,6 +1859,8 @@ function refreshHome() {
   document.getElementById("scanInput").style.display = "block";
   document.getElementById("cameraBtn").style.display = "block";
 
+  enableScanInput(); // 🔑 OBLIGATORIU
+
   const btn = document.getElementById("finishBtn");
   btn.style.display = "none";
   btn.classList.remove("active");
@@ -1952,8 +1920,7 @@ function showReceptionPanel() {
   const isVisible = receptionPanel.style.display === "block";
 
   if (isVisible) {
-    receptionPanel.style.display = "none";
-    setActiveNav("btnHome");
+    location.reload();
     return;
   }
 
@@ -1979,6 +1946,14 @@ function showReceptionPanel() {
       input.select();
     }
   }, 80);
+}
+function disableScanInput() {
+  const scanInput = document.getElementById("scanInput");
+  if (!scanInput) return;
+
+  scanInput.value = "";
+  scanInput.blur();
+  scanInput.disabled = true;
 }
 
 /* refresh automat la 30 sec – FIX MINIM */
