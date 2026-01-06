@@ -1324,16 +1324,13 @@ function armScanner() {
   const scanInput = document.getElementById("scanInput");
   if (!scanInput) return;
 
+  // RESET TOTAL INPUT
   scanInput.value = "";
   scanInput.disabled = false;
-
-  // ❌ NU readonly (scannerul tău nu scrie în readonly)
   scanInput.removeAttribute("readonly");
+  scanInput.removeAttribute("inputmode");
 
-  // 🔒 blocăm tastatura software
-  scanInput.setAttribute("inputmode", "none");
-
-  // 🔁 curățăm handler vechi
+  // SCOATEM ORICE HANDLER VECHI
   if (scanInput._scanHandler) {
     scanInput.removeEventListener("input", scanInput._scanHandler);
   }
@@ -1342,21 +1339,21 @@ function armScanner() {
     clearTimeout(scanTimer);
 
     scanTimer = setTimeout(() => {
-      const value = e.target.value.trim();
+      const value = e.target.value;
       e.target.value = "";
 
       if (!value) return;
 
       handleScanValue(value);
-    }, 60);
+    }, 80);
   };
 
   scanInput.addEventListener("input", scanInput._scanHandler);
 
-  // ✅ FOCUS NECESAR PENTRU SCANNER
-  scanInput.focus({ preventScroll: true });
+  // 🔑 FOCUS SIMPLU, FĂRĂ OPȚIUNI
+  scanInput.focus();
 
-  console.log("🔫 Scanner armed (FOCUS OK, NO readonly)");
+  console.log("🔫 Scanner armed – BASIC MODE");
 }
 
 function flashError() {
