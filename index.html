@@ -1318,8 +1318,7 @@ async function loadOrder(order) {
 
 /* ===================== armare scanner ====================== */
 
-let scanBuffer = "";
-let scanCommitTimer = null;
+let scanTimer = null;
 
 function armScanner() {
   const scanInput = document.getElementById("scanInput");
@@ -1328,36 +1327,29 @@ function armScanner() {
   scanInput.value = "";
   scanInput.disabled = false;
 
-  // 🔒 inițial: blocăm tastatura
-  scanInput.setAttribute("inputmode", "none");
+  // ❗ NU blocăm tastatura
+  // ❗ NU folosim inputmode
+  // ❗ NU forțăm readonly
+
   scanInput.focus({ preventScroll: true });
 
   scanInput.oninput = (e) => {
-    // 🔓 PERMITEM afișarea textului când începe scanul
-    scanInput.removeAttribute("inputmode");
+    clearTimeout(scanTimer);
 
-    scanBuffer = e.target.value;
+    scanTimer = setTimeout(() => {
+      const value = e.target.value.trim();
 
-    clearTimeout(scanCommitTimer);
-
-    scanCommitTimer = setTimeout(() => {
-      const value = scanBuffer.trim();
-
-      scanBuffer = "";
-      scanInput.value = "";
-
-      // 🔒 blocăm din nou tastatura
-      scanInput.setAttribute("inputmode", "none");
+      e.target.value = "";
 
       if (!value) return;
 
-      // 🔥 ENTER-UL TĂU REAL
+      // 🔥 ASTA ESTE ENTER-UL TĂU
       handleScanValue(value);
 
-    }, 70); // calibrat pentru Honeywell / Zebra
+    }, 80); // calibrat pentru scanner
   };
 
-  console.log("🔫 Scanner armed (text visible + enter logic)");
+  console.log("🔫 Scanner armed (keyboard allowed, scan auto)");
 }
 
 /* ===================== SCAN LOGIC ====================== */
