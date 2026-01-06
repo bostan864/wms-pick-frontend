@@ -1325,13 +1325,21 @@ function armScanner() {
   scanInput.value = "";
   scanInput.disabled = false;
 
+  // 🔒 NU tastatură software
+  scanInput.setAttribute("inputmode", "none");
+  scanInput.setAttribute("autocomplete", "off");
+  scanInput.setAttribute("autocorrect", "off");
+  scanInput.setAttribute("autocapitalize", "off");
+  scanInput.setAttribute("spellcheck", "false");
+
+  // 🎯 focus DOAR pentru scanner
+  scanInput.focus({ preventScroll: true });
+
+  // 🔁 handler unic
   scanInput.removeEventListener("input", handleScanAuto);
   scanInput.addEventListener("input", handleScanAuto);
 
-  scanInput.removeAttribute("inputmode"); // ⚠️ NU none aici
-  scanInput.focus();
-
-  console.log("🔫 Scanner armed");
+  console.log("🔫 Scanner armed (keyboard suppressed)");
 }
 
 /* ===================== SCAN AUTO (HONEYWELL) ====================== */
