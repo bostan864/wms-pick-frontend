@@ -1315,26 +1315,36 @@ function enableScanInput() {
   scanInput.disabled = false;
   scanInput.value = "";
 
-  // 🔑 OBLIGATORIU: focus pentru scanner hardware
+  // 🔥 prevenim blocaje de stare
+  scanInput.removeAttribute("readonly");
+  scanInput.removeAttribute("inputmode");
+
+  // 🔑 FOCUS OBLIGATORIU – activează scanarea
   scanInput.focus();
 
-  // 🔕 prevenim tastatura virtuală (NU readonly!)
-  setTimeout(() => {
-    scanInput.setAttribute("inputmode", "none");
-  }, 50);
+  // ✅ Prevenim tastatura virtuală doar pe device non-mobile
+  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+  if (!isMobile) {
+    setTimeout(() => {
+      scanInput.setAttribute("inputmode", "none");
+    }, 50);
+  }
 
-  // reset listeners (siguranță)
+  // 🔁 Reatașăm listenerul de scanare
   scanInput.removeEventListener("input", handleScanAuto);
   scanInput.addEventListener("input", handleScanAuto);
 
-  // ✋ tastare manuală DOAR la click intenționat
-  if (!scanInput.dataset.manualEnabled) {
-    scanInput.addEventListener("click", function () {
-      this.removeAttribute("inputmode");
-      this.focus();
-    });
-    scanInput.dataset.manualEnabled = "1";
-  }
+  // 🧠 Refacem manualEnabled dacă e nevoie
+  delete scanInput.dataset.manualEnabled;
+
+  // ✋ Permite tastare manuală DOAR la click intenționat
+  scanInput.addEventListener("click", function () {
+    this.removeAttribute("inputmode");
+    this.focus();
+  });
+  scanInput.dataset.manualEnabled = "1";
+
+  console.log("✅ enableScanInput: activat");
 }
 
 /* ===================== SCAN AUTO (HONEYWELL) ====================== */
