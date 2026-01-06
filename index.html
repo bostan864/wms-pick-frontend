@@ -1561,48 +1561,6 @@ function resetOrderContext() {
   console.log("✅ Reset complet – gata pentru următoarea comandă");
 }
 
-/* ===================== SOFT RESET APP ====================== */
-async function resetAppToStart() {
-  console.log("🔄 resetAppToStart START");
-
-  // 1. Curăță contextul comenzii
-  resetOrderContext();
-
-  // 2. Închide UI activ
-  closeOrdersPanel();
-  closeQS();
-
-  // 3. Navigare la Home
-  setActiveNav("btnHome");
-
-  // 4. Reîncarcă comenzile și statistici
-  try {
-    await loadOrders({ silent: true, force: true });
-    await loadDailyStats();
-    updateStats();
-    console.log("✅ Comenzi și statistici reîncărcate");
-  } catch (e) {
-    console.error("❌ Eroare la loadOrders/loadDailyStats:", e);
-  }
-
-  // 5. Focus pe input SCANNER (după ce totul e stabil)
-  setTimeout(() => {
-    const input = document.getElementById("scanInput");
-    if (input) {
-      input.disabled = false;
-      input.value = "";
-      input.setAttribute("inputmode", "none");
-      input.focus();
-
-      input.removeEventListener("input", handleScanAuto);
-      input.addEventListener("input", handleScanAuto);
-
-      console.log("🎯 Focus setat pe scanInput:", document.activeElement === input);
-    } else {
-      console.warn("❌ scanInput nu există în DOM după reset");
-    }
-  }, 500); // Delay crescut pentru a fi sigur că tot UI-ul e stabil
-}
 
 /* ===================== FINALIZE ORDER ====================== */
 async function finalizeOrder() {
@@ -1624,6 +1582,7 @@ async function finalizeOrder() {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${session.access_token}`,
+
       },
       body: JSON.stringify({
         orderId: currentOrderId,
@@ -1647,12 +1606,28 @@ async function finalizeOrder() {
       p_seconds: durationSeconds
     });
 
-    // ✅ UI feedback + soft reset complet
+    // ✅ UI feedback
     feedbackSuccess();
-    resetAppToStart(); // 🔥 Înlocuiește `location.reload()`
+
+    // 🧹 Curățăm complet contextul
+    resetOrderContext();
+    closeOrdersPanel();
+    closeQS();
+    setActiveNav("btnHome");
+
+    // 🔄 Reload comenzi + statistici
+    await loadOrders({ silent: true, force: true });
+    await loadDailyStats();
+    updateStats();
+
+    // ✅ Focus scanner (fără delay prea mare)
+    setTimeout(() => {
+      enableScanInput();
+    }, 120);
 
   } catch (e) {
     console.error(e);
+    alert("Eroare la finalizarea comenzii.");
   }
 }
 /* ===================== CANCEL ORDER ====================== */
