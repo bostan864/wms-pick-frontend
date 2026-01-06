@@ -1198,9 +1198,9 @@ async function loadOrders({ silent = false, force = false } = {}) {
 /* ===================== LOAD SINGLE ORDER ====================== */
 async function loadOrder(order) {
   if (!order || !order.orderId) {
-  alert("Comandă invalidă");
-  return;
-}
+    alert("Comandă invalidă");
+    return;
+  }
 
   currentOrderId = String(order.orderId);
 
@@ -1213,14 +1213,14 @@ async function loadOrder(order) {
   }
 
   const res = await fetch(
-  `${ORDER_GET_URL}?orderId=${encodeURIComponent(order.orderId)}&accountId=${encodeURIComponent(window.currentAccountId)}`,
-  {
-    cache: "no-store",
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-    },
-  }
-);
+    `${ORDER_GET_URL}?orderId=${encodeURIComponent(order.orderId)}&accountId=${encodeURIComponent(window.currentAccountId)}`,
+    {
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    }
+  );
 
   if (!res.ok) {
     alert("Eroare la încărcarea comenzii");
@@ -1229,10 +1229,12 @@ async function loadOrder(order) {
 
   const data = await res.json();
 
-  const products = (data.line_items || [])
-    .filter(p => p.item_type === "product");
+  /* ===================== PRODUSE (FĂRĂ PRESUPUNERI) ===================== */
+  const products = Array.isArray(data.line_items)
+    ? data.line_items
+    : [];
 
-  /* ===================== 1️⃣ SKU LIST ===================== */
+  /* ===================== SKU LIST ===================== */
   const skuList = [
     ...new Set(
       products
@@ -1241,7 +1243,7 @@ async function loadOrder(order) {
     )
   ];
 
-  /* ===================== 2️⃣ LOCAȚII DIN DB ===================== */
+  /* ===================== LOCAȚII DIN DB ===================== */
   let locationMap = new Map();
 
   if (skuList.length) {
@@ -1262,7 +1264,7 @@ async function loadOrder(order) {
     }
   }
 
-  /* ===================== 3️⃣ CONSTRUIRE PRODUSE ===================== */
+  /* ===================== CONSTRUIRE currentProducts ===================== */
   currentProducts = products.map(p => {
     const originalSku = p.product_sku || "";
     const lookupSku = String(originalSku).replace(/^0+/, "");
@@ -1271,7 +1273,7 @@ async function loadOrder(order) {
       sku: originalSku,
       ean: p.product_ean,
       name: p.product_name,
-      qty: Number(p.quantity),
+      qty: Number(p.quantity) || 0,
       shelf: locationMap.get(lookupSku) || "Fără locație",
       scanned: 0
     };
@@ -1285,7 +1287,7 @@ async function loadOrder(order) {
     return String(a.shelf).localeCompare(String(b.shelf));
   });
 
-  /* ===================== UI ===================== */
+  /* ===================== UI COMANDĂ ===================== */
   document.getElementById("orderTitle").textContent =
     "Comanda #" + currentOrderId;
 
@@ -1294,47 +1296,42 @@ async function loadOrder(order) {
 
   document.getElementById("orderMeta").style.display = "block";
 
-  const scanInput = document.getElementById("scanInput");
-  enableScanInput();
-
-// 🔥 REACTIVARE SCANARE
-
+  /* ===================== TIMER + TABEL ===================== */
   startTimer();
   buildProductsTableOnce();
+
+  /* ===================== PICK MODE UI ===================== */
+  const scanInput = document.getElementById("scanInput");
+  const productsTable = document.getElementById("productsTable");
+  const cameraBtn = document.getElementById("cameraBtn");
+
+  if (scanInput) scanInput.style.display = "block";
+  if (productsTable) productsTable.style.display = "table";
+  if (cameraBtn) cameraBtn.style.display = "block";
+
+  /* ===================== ARM SCANNER ===================== */
+  armScanner();
 
   console.log("✅ Comandă încărcată:", currentOrderId);
 }
 
-/* ===================== SCAN CONTEXT RESET ====================== */
-let scanTimer = null;
 
-function enableScanInput() {
+/* ===================== armare scanner ====================== */
+
+function armScanner() {
   const scanInput = document.getElementById("scanInput");
   if (!scanInput) return;
 
-  scanInput.disabled = false;
   scanInput.value = "";
+  scanInput.disabled = false;
 
-  // 🔑 Focus real imediat
-  scanInput.focus();
-
-  // 🔕 Previne tastatura (dar păstrează focusul)
-  setTimeout(() => {
-    scanInput.setAttribute("inputmode", "none");
-  }, 50);
-
-  // 🎯 Reatașează handlerul de scanare
   scanInput.removeEventListener("input", handleScanAuto);
   scanInput.addEventListener("input", handleScanAuto);
 
-  // ✋ Tastatură manuală doar la click
-  if (!scanInput.dataset.manualEnabled) {
-    scanInput.addEventListener("click", function () {
-      this.removeAttribute("inputmode");
-      this.focus();
-    });
-    scanInput.dataset.manualEnabled = "1";
-  }
+  scanInput.removeAttribute("inputmode"); // ⚠️ NU none aici
+  scanInput.focus();
+
+  console.log("🔫 Scanner armed");
 }
 
 /* ===================== SCAN AUTO (HONEYWELL) ====================== */
@@ -1559,8 +1556,29 @@ function resetOrderContext() {
   }
 
   console.log("✅ Reset complet – gata pentru următoarea comandă");
+armScanner();
+
 }
 
+/* ===================== SOFT RESET APP ====================== */
+function resetAppToStart() {
+  console.log("🔄 Soft reset app → gata pentru următoarea comandă");
+
+  resetOrderContext();
+  closeOrdersPanel();
+  closeQS();
+
+  loadOrders({ silent: true, force: true });
+  loadDailyStats();
+  updateStats();
+
+  setActiveNav("btnHome");
+
+  setTimeout(() => {
+    enableScanInput(); // 🔥 Scanner gata din prima
+  }, 150);
+setTimeout(armScanner, 100);
+}
 
 /* ===================== FINALIZE ORDER ====================== */
 async function finalizeOrder() {
@@ -1582,7 +1600,6 @@ async function finalizeOrder() {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${session.access_token}`,
-
       },
       body: JSON.stringify({
         orderId: currentOrderId,
@@ -1606,28 +1623,14 @@ async function finalizeOrder() {
       p_seconds: durationSeconds
     });
 
-    // ✅ UI feedback
+    // ✅ UI feedback + soft reset complet
     feedbackSuccess();
-
-    // 🧹 Curățăm complet contextul
-    resetOrderContext();
-    closeOrdersPanel();
-    closeQS();
-    setActiveNav("btnHome");
-
-    // 🔄 Reload comenzi + statistici
-    await loadOrders({ silent: true, force: true });
-    await loadDailyStats();
-    updateStats();
-
-    // ✅ Focus scanner (fără delay prea mare)
-    setTimeout(() => {
-      enableScanInput();
-    }, 120);
+    resetAppToStart(); // 🔥 Înlocuiește `location.reload()`
 
   } catch (e) {
     console.error(e);
-    alert("Eroare la finalizarea comenzii.");
+    armScanner();
+
   }
 }
 /* ===================== CANCEL ORDER ====================== */
