@@ -1312,31 +1312,29 @@ function enableScanInput() {
   const scanInput = document.getElementById("scanInput");
   if (!scanInput) return;
 
-  // 🔁 Reset input
   scanInput.disabled = false;
   scanInput.value = "";
 
-  // 🧱 Blochează tastatura, dar permite scanner
-  scanInput.setAttribute("readonly", "readonly");
-  scanInput.setAttribute("inputmode", "none");
+  // 🔑 Focus real imediat
+  scanInput.focus();
 
-  // 🟢 Focus real – scanner funcționează
+  // 🔕 Previne tastatura (dar păstrează focusul)
   setTimeout(() => {
-    scanInput.focus();
+    scanInput.setAttribute("inputmode", "none");
   }, 50);
 
-  // 🔁 Reatașăm listenerul de scan
+  // 🎯 Reatașează handlerul de scanare
   scanInput.removeEventListener("input", handleScanAuto);
   scanInput.addEventListener("input", handleScanAuto);
 
-  // 🟢 Dacă userul dă click, permite tastatură
-  scanInput.addEventListener("click", function () {
-    this.removeAttribute("readonly");
-    this.removeAttribute("inputmode");
-    this.focus();
-  });
-
-  console.log("✅ enableScanInput → focus ok, tastatură blocată");
+  // ✋ Tastatură manuală doar la click
+  if (!scanInput.dataset.manualEnabled) {
+    scanInput.addEventListener("click", function () {
+      this.removeAttribute("inputmode");
+      this.focus();
+    });
+    scanInput.dataset.manualEnabled = "1";
+  }
 }
 
 /* ===================== SCAN AUTO (HONEYWELL) ====================== */
