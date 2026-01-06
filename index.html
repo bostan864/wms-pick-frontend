@@ -1524,18 +1524,21 @@ function startCameraScan() {
   });
 }
 /* =====================
-   RESET ORDER CONTEXT – FINAL / STABIL
+   RESET ORDER CONTEXT – FINAL / STABIL (FIX SCAN)
    ===================== */
 function resetOrderContext() {
   console.log("🔄 Reset order context");
 
+  // 🔁 reset date comandă
   currentProducts = [];
   currentOrderId = null;
   productRowMap.clear();
 
+  // ⏱ stop timer
   stopTimer();
   orderStartTime = null;
 
+  // 🧹 UI cleanup
   document.getElementById("orderTitle").textContent = "";
   document.getElementById("orderMeta").style.display = "none";
 
@@ -1549,18 +1552,33 @@ function resetOrderContext() {
     finishBtn.disabled = true;
   }
 
-  // 🔑 CRITIC: NU blocăm scannerul
+  /* =====================
+     🔑 SCAN INPUT – FIX REAL
+     ===================== */
   const scanInput = document.getElementById("scanInput");
   if (scanInput) {
+    // reset complet input
+    scanInput.disabled = false;
     scanInput.value = "";
+
+    // 🔥 eliminăm ORICE blocaj rămas
+    scanInput.removeAttribute("readonly");
+    scanInput.removeAttribute("inputmode");
+
+    // reset listeners (sigur)
     scanInput.removeEventListener("input", handleScanAuto);
     scanInput.addEventListener("input", handleScanAuto);
 
-    // focus “soft”, nu forțat
+    // 🔥 FOCUS GARANTAT pentru următoarea comandă
     setTimeout(() => {
       scanInput.focus();
-      scanInput.setAttribute("inputmode", "none");
-    }, 100);
+
+      // 🧠 dacă NU e mobil → blocăm tastatura (scanner hardware)
+      const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+      if (!isMobile) {
+        scanInput.setAttribute("inputmode", "none");
+      }
+    }, 150);
   }
 
   console.log("✅ Reset complet – gata pentru următoarea comandă");
