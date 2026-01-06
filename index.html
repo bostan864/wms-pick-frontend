@@ -1318,6 +1318,9 @@ async function loadOrder(order) {
 
 /* ===================== armare scanner ====================== */
 
+let scanBuffer = "";
+let scanCommitTimer = null;
+
 function armScanner() {
   const scanInput = document.getElementById("scanInput");
   if (!scanInput) return;
@@ -1325,37 +1328,29 @@ function armScanner() {
   scanInput.value = "";
   scanInput.disabled = false;
 
-  // 🔒 NU tastatură software
   scanInput.setAttribute("inputmode", "none");
-  scanInput.setAttribute("autocomplete", "off");
-  scanInput.setAttribute("autocorrect", "off");
-  scanInput.setAttribute("autocapitalize", "off");
-  scanInput.setAttribute("spellcheck", "false");
-
-  // 🎯 focus DOAR pentru scanner
   scanInput.focus({ preventScroll: true });
 
-  // 🔁 handler unic
-  scanInput.removeEventListener("input", handleScanAuto);
-  scanInput.addEventListener("input", handleScanAuto);
+  scanInput.oninput = (e) => {
+    scanBuffer = e.target.value;
 
-  console.log("🔫 Scanner armed (keyboard suppressed)");
-}
+    // resetăm timerul la fiecare caracter
+    clearTimeout(scanCommitTimer);
 
-/* ===================== SCAN AUTO (HONEYWELL) ====================== */
-function handleScanAuto(e) {
-  clearTimeout(scanTimer);
+    scanCommitTimer = setTimeout(() => {
+      const value = scanBuffer.trim();
+      scanBuffer = "";
+      scanInput.value = "";
 
-  scanTimer = setTimeout(() => {
-    const rawValue = (e.target.value || "").trim();
+      if (!value) return;
 
-    // se golește MEREU
-    e.target.value = "";
+      // 🔥 AICI ESTE ENTER-UL REAL
+      handleScanValue(value);
 
-    if (!rawValue) return;
+    }, 70); // 50–80ms = ENTER instant pe scanner
+  };
 
-    handleScanValue(rawValue);
-  }, 180); // timing stabil Honeywell
+  console.log("🔫 Scanner armed + enter logic active");
 }
 
 /* ===================== SCAN LOGIC ====================== */
