@@ -1328,29 +1328,36 @@ function armScanner() {
   scanInput.value = "";
   scanInput.disabled = false;
 
+  // 🔒 inițial: blocăm tastatura
   scanInput.setAttribute("inputmode", "none");
   scanInput.focus({ preventScroll: true });
 
   scanInput.oninput = (e) => {
+    // 🔓 PERMITEM afișarea textului când începe scanul
+    scanInput.removeAttribute("inputmode");
+
     scanBuffer = e.target.value;
 
-    // resetăm timerul la fiecare caracter
     clearTimeout(scanCommitTimer);
 
     scanCommitTimer = setTimeout(() => {
       const value = scanBuffer.trim();
+
       scanBuffer = "";
       scanInput.value = "";
 
+      // 🔒 blocăm din nou tastatura
+      scanInput.setAttribute("inputmode", "none");
+
       if (!value) return;
 
-      // 🔥 AICI ESTE ENTER-UL REAL
+      // 🔥 ENTER-UL TĂU REAL
       handleScanValue(value);
 
-    }, 70); // 50–80ms = ENTER instant pe scanner
+    }, 70); // calibrat pentru Honeywell / Zebra
   };
 
-  console.log("🔫 Scanner armed + enter logic active");
+  console.log("🔫 Scanner armed (text visible + enter logic)");
 }
 
 /* ===================== SCAN LOGIC ====================== */
