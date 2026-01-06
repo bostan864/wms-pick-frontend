@@ -1529,7 +1529,6 @@ function startCameraScan() {
 function resetOrderContext() {
   console.log("🔄 Reset order context");
 
-  // 🔁 reset date comandă
   currentProducts = [];
   currentOrderId = null;
   productRowMap.clear();
@@ -1550,10 +1549,14 @@ function resetOrderContext() {
     finishBtn.disabled = true;
   }
 
-  // 🔄 Activăm inputul de scanare după mic delay
-  setTimeout(() => {
-    enableScanInput(); // 🔥 activare focus și fixuri tastatură
-  }, 100);
+  // 🧠 NU mai punem delay aiurea aici – doar curățare
+  const scanInput = document.getElementById("scanInput");
+  if (scanInput) {
+    scanInput.disabled = false;               // ✅ activat
+    scanInput.value = "";
+    scanInput.removeAttribute("readonly");    // ✅ sigur
+    scanInput.removeAttribute("inputmode");   // ✅ ca să apară tastatura
+  }
 
   console.log("✅ Reset complet – gata pentru următoarea comandă");
 }
@@ -1573,6 +1576,7 @@ async function finalizeOrder() {
     const durationSeconds =
       Math.floor((Date.now() - orderStartTime) / 1000);
 
+    // 🔁 Finalizare în backend
     await fetch(DELETE_ORDER_URL, {
       method: "POST",
       headers: {
@@ -1585,6 +1589,7 @@ async function finalizeOrder() {
       }),
     });
 
+    // 🔢 Calcul pentru statistici
     const order = allOrders.find(
       o => String(o.orderId) === String(currentOrderId)
     );
@@ -1593,25 +1598,33 @@ async function finalizeOrder() {
       order?.total_amount || order?.subtotal_amount || 0
     );
 
+    // ✅ Update statistici
     await window.supabaseClient.rpc("increment_daily_stats", {
       p_account_id: window.currentAccountId,
       p_amount: orderAmount,
       p_seconds: durationSeconds
     });
 
-    // ❌ FĂRĂ alert
+    // ✅ UI feedback
     feedbackSuccess();
 
+    // 🧹 Curățăm contextul comenzii
     resetOrderContext();
-
     closeOrdersPanel();
     closeQS();
 
+    // 🔄 Reload comenzi + statistici
     await loadOrders({ silent: true, force: true });
     await loadDailyStats();
     updateStats();
 
+    // 🏠 Navigare spre Home
     setActiveNav("btnHome");
+
+    // 🔥 Fix garantat pentru scanarea următoarei comenzi
+    setTimeout(() => {
+      enableScanInput();
+    }, 150);
 
   } catch (e) {
     console.error(e);
