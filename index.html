@@ -1300,6 +1300,7 @@ startTimer();
 buildProductsTableOnce();
 
 /* 🔫 ARM SCANNER – OBLIGATORIU */
+recreateScanInput();
 armScanner();
 
 
@@ -1313,7 +1314,6 @@ armScanner();
   if (cameraBtn) cameraBtn.style.display = "block";
 
   /* ===================== ARM SCANNER ===================== */
-  armScanner();
 
   console.log("✅ Comandă încărcată:", currentOrderId);
 }
@@ -1329,14 +1329,6 @@ function armScanner() {
 
   scanInput.disabled = false;
   scanInput.value = "";
-
-  // focus real (ca înainte)
-  scanInput.focus();
-
-  // blocăm tastatura după focus (ca înainte)
-  setTimeout(() => {
-    scanInput.setAttribute("inputmode", "none");
-  }, 50);
 
   // scoatem handler vechi
   scanInput.removeEventListener("input", scanInput._scanHandler);
@@ -1368,6 +1360,28 @@ function armScanner() {
   }
 
   console.log("🔫 armScanner ACTIV – ENTER SIMULAT");
+}
+function recreateScanInput() {
+  const old = document.getElementById("scanInput");
+  if (!old) return;
+
+  const parent = old.parentNode;
+
+  // 🔥 distrugem complet inputul vechi
+  old.remove();
+
+  // 🔥 creăm unul NOU (virgin pentru HID)
+  const input = document.createElement("input");
+  input.id = "scanInput";
+  input.placeholder = "Scanează EAN / SKU...";
+  input.autocomplete = "off";
+  input.autocorrect = "off";
+  input.autocapitalize = "off";
+  input.spellcheck = false;
+
+  parent.prepend(input);
+
+  console.log("♻️ scanInput recreat complet");
 }
 
 function flashError() {
@@ -1577,37 +1591,8 @@ function resetOrderContext() {
     finishBtn.disabled = true;
   }
 
-  // 🧠 NU mai punem delay aiurea aici – doar curățare
-  const scanInput = document.getElementById("scanInput");
-  if (scanInput) {
-    scanInput.disabled = false;               // ✅ activat
-    scanInput.value = "";
-    scanInput.removeAttribute("readonly");    // ✅ sigur
-    scanInput.removeAttribute("inputmode");   // ✅ ca să apară tastatura
-  }
-
   console.log("✅ Reset complet – gata pentru următoarea comandă");
 
-}
-
-/* ===================== SOFT RESET APP ====================== */
-function resetAppToStart() {
-  console.log("🔄 Soft reset app → gata pentru următoarea comandă");
-
-  resetOrderContext();
-  closeOrdersPanel();
-  closeQS();
-
-  loadOrders({ silent: true, force: true });
-  loadDailyStats();
-  updateStats();
-
-  setActiveNav("btnHome");
-
-  // 🔑 REARMARE SCANNER – OBLIGATORIU
-  setTimeout(() => {
-    armScanner();
-  }, 200);
 }
 
 /* ===================== FINALIZE ORDER ====================== */
@@ -1653,13 +1638,21 @@ async function finalizeOrder() {
       p_seconds: durationSeconds
     });
 
-    // ✅ UI feedback + soft reset complet
-    feedbackSuccess();
-    resetAppToStart(); // 🔥 Înlocuiește `location.reload()`
+    // ✅ UI feedback
+feedbackSuccess();
 
-  } catch (e) {
-    console.error(e);
-    armScanner();
+// ✅ reset logic (fără reload)
+resetOrderContext();
+closeOrdersPanel();
+closeQS();
+setActiveNav("btnHome");
+
+// 🔥 RECREARE + REARMARE SCANNER (CHEIA)
+setTimeout(() => {
+  recreateScanInput();
+  armScanner();
+}, 150);
+
 
   }
 }
@@ -1959,7 +1952,8 @@ function showReceptionPanel() {
   const isVisible = receptionPanel.style.display === "block";
 
   if (isVisible) {
-    location.reload();
+    receptionPanel.style.display = "none";
+    setActiveNav("btnHome");
     return;
   }
 
