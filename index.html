@@ -1327,11 +1327,13 @@ function armScanner() {
   scanInput.value = "";
   scanInput.disabled = false;
 
-  // 🔒 BLOCHĂM tastatura
-  scanInput.setAttribute("readonly", "readonly");
+  // ❌ NU readonly (scannerul tău nu scrie în readonly)
+  scanInput.removeAttribute("readonly");
+
+  // 🔒 blocăm tastatura software
   scanInput.setAttribute("inputmode", "none");
 
-  // 🔁 scoatem handler vechi
+  // 🔁 curățăm handler vechi
   if (scanInput._scanHandler) {
     scanInput.removeEventListener("input", scanInput._scanHandler);
   }
@@ -1346,15 +1348,15 @@ function armScanner() {
       if (!value) return;
 
       handleScanValue(value);
-    }, 80);
+    }, 60);
   };
 
   scanInput.addEventListener("input", scanInput._scanHandler);
 
-  // ✅ FOCUS REAL, DAR FĂRĂ TASTATURĂ
+  // ✅ FOCUS NECESAR PENTRU SCANNER
   scanInput.focus({ preventScroll: true });
 
-  console.log("🔫 Scanner armed (FOCUS OK, KEYBOARD BLOCKED)");
+  console.log("🔫 Scanner armed (FOCUS OK, NO readonly)");
 }
 
 function flashError() {
