@@ -1,8 +1,8 @@
 <!DOCTYPE html>
+
 <html lang="ro">
 <head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
 window.APP_CONFIG = {
   SUPABASE_URL: "https://yvmqfsigxecmrygmbolg.supabase.co",
@@ -16,8 +16,8 @@ const API_BASE = "https://oyster-app-XXXX.ondigitalocean.app";
 <script>
 window.API_BASE_URL = "https://oyster-app-6u5cg.ondigitalocean.app";
 </script>
-<meta charset="UTF-8" />
-<title>Nailly – Pick & Pack PRO</title>
+<meta charset="utf-8"/>
+<title>Nailly – Pick &amp; Pack PRO</title>
 <style>
   :root{
   --brand:#111111;
@@ -772,7 +772,6 @@ body.wms-mobile .stats-number{
 
 </style>
 </head>
-
 <body class="wms-mobile">
 <script>
 window.supabaseClient = supabase.createClient(
@@ -780,195 +779,143 @@ window.supabaseClient = supabase.createClient(
   window.APP_CONFIG.SUPABASE_ANON_KEY
 );
 </script>
-
 <div id="loginOverlay" style="display:none">
-  <div class="login-box">
-    <h2>Autentificare</h2>
-
-    <input id="loginUser" placeholder="Utilizator">
-    <input id="loginPass" type="password" placeholder="Parolă">
-
-    <button onclick="doLogin()">Intră</button>
-
-    <div id="loginError" class="login-error">
+<div class="login-box">
+<h2>Autentificare</h2>
+<input id="loginUser" placeholder="Utilizator"/>
+<input id="loginPass" placeholder="Parolă" type="password"/>
+<button onclick="doLogin()">Intră</button>
+<div class="login-error" id="loginError">
       User sau parolă greșită
     </div>
-  </div>
 </div>
-
-  <!-- APP HEADER -->
-  <div class="app-header">
-    <div class="logo-header">
-      <img src="https://c.cdnmp.net/957918846/content/WMS.png">
-    </div>
-    <div class="app-header-title">
-      <strong>Nailly – Pick &amp; Pack PRO</strong>
-      <span>Scan &amp; pack mai rapid</span>
-    </div>
-  </div>
-
-  <div id="statsBar">
-  <!-- VERDE -->
-  <div id="pendingBox" class="stats-card stats-pending--some">
-    <span class="stats-title">⚠️ Status comenzi</span>
-
-    <div class="stats-main">
-      <span class="stats-number" id="pendingCount">0</span>
-      <span class="stats-label">comenzi de pregătit</span>
-    </div>
-
-    <div class="stats-sub stats-green" id="pendingTotal">
+</div>
+<!-- APP HEADER -->
+<div class="app-header">
+<div class="logo-header">
+<img src="https://c.cdnmp.net/957918846/content/WMS.png"/>
+</div>
+<div class="app-header-title">
+<strong>Nailly – Pick &amp; Pack PRO</strong>
+<span>Scan &amp; pack mai rapid</span>
+</div>
+</div>
+<div id="statsBar">
+<!-- VERDE -->
+<div class="stats-card stats-pending--some" id="pendingBox">
+<span class="stats-title">⚠️ Status comenzi</span>
+<div class="stats-main">
+<span class="stats-number" id="pendingCount">0</span>
+<span class="stats-label">comenzi de pregătit</span>
+</div>
+<div class="stats-sub stats-green" id="pendingTotal">
       Total: 0 RON
     </div>
-  </div>
-
-  <!-- ALBASTRU -->
-  <div id="doneBox" class="stats-card stats-done">
-    <span class="stats-title">✔️ Activitatea de astăzi</span>
-
-    <div class="stats-main">
-      <span class="stats-number" id="doneCount">0</span>
-      <span class="stats-label">comenzi finalizate</span>
-    </div>
-
-    <div class="stats-sub stats-blue" id="doneTime">
+</div>
+<!-- ALBASTRU -->
+<div class="stats-card stats-done" id="doneBox">
+<span class="stats-title">✔️ Activitatea de astăzi</span>
+<div class="stats-main">
+<span class="stats-number" id="doneCount">0</span>
+<span class="stats-label">comenzi finalizate</span>
+</div>
+<div class="stats-sub stats-blue" id="doneTime">
       Timp: 0 min
     </div>
-  </div>
 </div>
-
-
-
-  <h3 id="orderTitle"></h3>
-
-  <div id="orderMeta">
-    <div id="orderInfoRow">
-      <span id="orderCode"></span>
-      <span id="timerBox">Timp: <span id="timer">00:00</span></span>
-    </div>
-    <div id="progressOuter"><div id="progressInner"></div></div>
-    <div id="progressText"></div>
-  </div>
-
-  <h3>Pas 2: Scanează produsele</h3>
-
-<input
-  id="scanInput"
-  placeholder="Scanează EAN / SKU..."
-  autocomplete="off"
-  autocorrect="off"
-  autocapitalize="off"
-  spellcheck="false"
-/>
-
-
-  <button id="cameraBtn" onclick="startCameraScan()">Scanează cu camera telefonului</button>
-
-  <div id="cameraScanner"></div>
-
-  <table id="productsTable">
-    <thead>
-      <tr>
-        <th>SKU</th>
-        <th>Produs</th>
-        <th>Raft</th>
-        <th>Cantitate</th>
-        <th>Scanat</th>
-        <th>Rămas</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <button id="finishBtn" onclick="finalizeOrder()">Finalizează comanda</button>
-
-  <!-- ORDERS PANEL -->
-  <div id="ordersPanel" class="orders-panel">
-    <div class="orders-panel-header">
-      <div>Comenzi în pregătire</div>
-      <button class="close-btn" onclick="closeOrdersPanel()">✕</button>
-    </div>
-    <div id="ordersPanelList" class="orders-panel-list"></div>
-  </div>
-
+</div>
+<h3 id="orderTitle"></h3>
+<div id="orderMeta">
+<div id="orderInfoRow">
+<span id="orderCode"></span>
+<span id="timerBox">Timp: <span id="timer">00:00</span></span>
+</div>
+<div id="progressOuter"><div id="progressInner"></div></div>
+<div id="progressText"></div>
+</div>
+<h3>Pas 2: Scanează produsele</h3>
+<input autocapitalize="off" autocomplete="off" autocorrect="off" id="scanInput" placeholder="Scanează EAN / SKU..." spellcheck="false">
+<button id="cameraBtn" onclick="startCameraScan()">Scanează cu camera telefonului</button>
+<div id="cameraScanner"></div>
+<table id="productsTable">
+<thead>
+<tr>
+<th>SKU</th>
+<th>Produs</th>
+<th>Raft</th>
+<th>Cantitate</th>
+<th>Scanat</th>
+<th>Rămas</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+<button id="finishBtn" onclick="finalizeOrder()">Finalizează comanda</button>
+<!-- ORDERS PANEL -->
+<div class="orders-panel" id="ordersPanel">
+<div class="orders-panel-header">
+<div>Comenzi în pregătire</div>
+<button class="close-btn" onclick="closeOrdersPanel()">✕</button>
+</div>
+<div class="orders-panel-list" id="ordersPanelList"></div>
+</div>
 <!-- RECEPTION PANEL -->
 <div id="receptionPanel" style="display:none;">
-
-
-  <!-- Conținutul centrat -->
-  <div class="reception-inner">
-
-    <!-- ✅ Câmpul de scanare (mai mare + stil direct) -->
-  <input
-  id="scanInputReception"
-  placeholder="Scanează EAN / SKU..."
-  autocomplete="off"
-  autocorrect="off"
-  autocapitalize="off"
-  spellcheck="false"
-/>
-
-
-    <!-- Afișare rezultat scanare -->
-    <div id="scanResultReception"></div>
-
-  </div>
+<!-- Conținutul centrat -->
+<div class="reception-inner">
+<!-- ✅ Câmpul de scanare (mai mare + stil direct) -->
+<input autocapitalize="off" autocomplete="off" autocorrect="off" id="scanInputReception" placeholder="Scanează EAN / SKU..." spellcheck="false">
+<!-- Afișare rezultat scanare -->
+<div id="scanResultReception"></div>
+</input></div>
 </div>
-
-  <!-- QUICK SEARCH OVERLAY -->
-  <div id="quickSearchOverlay">
-    <div class="quickSearchBox">
-      <div class="quickSearchInputWrap">
-        <input id="quickSearchInput" placeholder="Scrie numărul comenzii…" inputmode="numeric" autocomplete="off">
-        <button id="quickSearchBtn" type="button" title="Caută">🔍</button>
-        <div id="quickSearchClose" title="Închide">×</div>
-        <div id="quickSearchResults"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- BOTTOM NAV PRO -->
-  <div id="bottomNav">
-    <button id="btnHome" class="nav-btn active" title="Acasă">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#D81B60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="23 4 23 10 17 10"></polyline>
-        <polyline points="1 20 1 14 7 14"></polyline>
-        <path d="M3.51 9a9 9 0 0114.13-3.36L23 10"></path>
-        <path d="M20.49 15a9 9 0 01-14.13 3.36L1 14"></path>
-      </svg>
-      <span>Acasă</span>
-    </button>
-
-    <button id="btnOrders" class="nav-btn" title="Comenzi">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#D81B60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 5H21V19H9z"></path>
-        <polyline points="9 3 5 3 5 21 21 21"></polyline>
-      </svg>
-      <span>Comenzi</span>
-    </button>
-
-<button id="btnReception" class="nav-btn" title="Recepție">
-  <svg viewBox="0 0 24 24" fill="none" stroke="#D81B60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-    <polyline points="7 10 12 15 17 10" />
-    <line x1="12" y1="15" x2="12" y2="3" />
-  </svg>
-  <span>Recepție</span>
+<!-- QUICK SEARCH OVERLAY -->
+<div id="quickSearchOverlay">
+<div class="quickSearchBox">
+<div class="quickSearchInputWrap">
+<input autocomplete="off" id="quickSearchInput" inputmode="numeric" placeholder="Scrie numărul comenzii…"/>
+<button id="quickSearchBtn" title="Caută" type="button">🔍</button>
+<div id="quickSearchClose" title="Închide">×</div>
+<div id="quickSearchResults"></div>
+</div>
+</div>
+</div>
+<!-- BOTTOM NAV PRO -->
+<div id="bottomNav">
+<button class="nav-btn active" id="btnHome" title="Acasă">
+<svg fill="none" stroke="#D81B60" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24">
+<polyline points="23 4 23 10 17 10"></polyline>
+<polyline points="1 20 1 14 7 14"></polyline>
+<path d="M3.51 9a9 9 0 0114.13-3.36L23 10"></path>
+<path d="M20.49 15a9 9 0 01-14.13 3.36L1 14"></path>
+</svg>
+<span>Acasă</span>
 </button>
-
-    <button id="btnSearch" class="nav-btn" title="Caută">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#D81B60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"></circle>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-      </svg>
-      <span>Caută</span>
-    </button>
-
-  </div>
-
-  <!-- CAMERA LIB -->
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-
+<button class="nav-btn" id="btnOrders" title="Comenzi">
+<svg fill="none" stroke="#D81B60" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 5H21V19H9z"></path>
+<polyline points="9 3 5 3 5 21 21 21"></polyline>
+</svg>
+<span>Comenzi</span>
+</button>
+<button class="nav-btn" id="btnReception" title="Recepție">
+<svg fill="none" stroke="#D81B60" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24">
+<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+<polyline points="7 10 12 15 17 10"></polyline>
+<line x1="12" x2="12" y1="15" y2="3"></line>
+</svg>
+<span>Recepție</span>
+</button>
+<button class="nav-btn" id="btnSearch" title="Caută">
+<svg fill="none" stroke="#D81B60" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24">
+<circle cx="11" cy="11" r="8"></circle>
+<line x1="21" x2="16.65" y1="21" y2="16.65"></line>
+</svg>
+<span>Caută</span>
+</button>
+</div>
+<!-- CAMERA LIB -->
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 <script>
 /* ===================== CONFIG ====================== */
 const BACKEND_BASE_URL = "https://oyster-app-6u5cg.ondigitalocean.app";
@@ -2011,7 +1958,6 @@ function showOverlay(overlay) {
   overlay.style.display = "flex";
 }
 </script>
-
 <script>
 /* =====================
    ACCOUNT CONTEXT
@@ -2092,205 +2038,113 @@ window.addEventListener("load", async () => {
   }
 });
 </script>
-
 <script>
-/* ===================== RECEPȚIE – SKU + EAN (LIKE FIX) ===================== */
+// =============================
+// 🔧 APP STATE MANAGEMENT
+// =============================
+const APP_STATE = {
+  IDLE: "IDLE",
+  PICKING: "PICKING",
+  RECEPTION: "RECEPTION"
+};
+let currentAppState = APP_STATE.IDLE;
 
-const scanInputReception = document.getElementById("scanInputReception");
-const scanResultReception = document.getElementById("scanResultReception");
+// =============================
+// 🔁 SCAN STATE LOGIC
+// =============================
+function syncScanState() {
+  const input = document.getElementById("scanInput");
+  if (!input) return;
 
-let receptionScanTimer = null;
+  const canScan = currentAppState === APP_STATE.PICKING || currentAppState === APP_STATE.RECEPTION;
 
-/* ===================== UTIL ===================== */
-function normalizeSKU(code) {
-  if (!code) return "";
-  return String(code)
-    .replace(/^\]C1/, "")
-    .trim()
-    .toUpperCase(); // SKU = text
+  input.disabled = !canScan;
+  input.value = "";
+
+  input.removeEventListener("input", handleScanAuto);
+  if (canScan) {
+    input.setAttribute("inputmode", "none");
+    setTimeout(() => input.focus(), 30);
+    input.addEventListener("input", handleScanAuto);
+  }
 }
 
-function normalizeEAN(code) {
-  if (!code) return "";
-  return String(code)
-    .replace(/^\]C1/, "")
-    .replace(/\D/g, "")
-    .replace(/^0+/, "");
+// =============================
+// 🌐 EXISTING FUNCTION PATCHES
+// =============================
+
+// call syncScanState after loading a picking order
+function loadOrder(order) {
+  currentAppState = APP_STATE.PICKING;
+  currentOrderId = String(order.orderId);
+  orderStartTime = Date.now();
+  currentProducts = order.products || [];
+
+  buildProductsTableOnce();
+  startTimer();
+  syncScanState();
 }
 
-/* ===================== FETCH LOCAȚIE ===================== */
-async function fetchReceptionLocation(rawCode) {
-  scanResultReception.innerHTML = "🔍 Caut produsul...";
-
-  const input = normalizeScanInput(rawCode);
-  if (!input) {
-    return renderNewProductForm("");
-  }
-
-  // 🔹 SKU = eliminăm doar zerourile din față
-  const skuNorm = input.replace(/^0+/, "");
-
-  // 🔹 EAN = normalizare la 11 cifre (DOAR pentru EAN)
-  const eanNorm = input.replace(/\D/g, "").replace(/^0+/, "").slice(-11);
-
-  let data;
-
-  /* ===================== 1️⃣ CAUTĂ DUPĂ SKU ===================== */
-  ({ data } = await window.supabaseClient
-    .from("product_locations")
-    .select("id, sku, ean, ean_norm, location")
-    .eq("account_id", window.currentAccountId)
-    .eq("sku", skuNorm)
-    .limit(1)
-  );
-
-  if (data?.length) {
-    return renderExistingProduct(data[0]);
-  }
-
-  /* ===================== 2️⃣ CAUTĂ DUPĂ EAN EXACT ===================== */
-  if (input.length >= 8) {
-    ({ data } = await window.supabaseClient
-      .from("product_locations")
-      .select("id, sku, ean, ean_norm, location")
-      .eq("account_id", window.currentAccountId)
-      .eq("ean", input)
-      .limit(1)
-    );
-
-    if (data?.length) {
-      return renderExistingProduct(data[0]);
-    }
-  }
-
-  /* ===================== 3️⃣ CAUTĂ DUPĂ EAN NORMALIZAT ===================== */
-  if (eanNorm.length === 11) {
-    ({ data } = await window.supabaseClient
-      .from("product_locations")
-      .select("id, sku, ean, ean_norm, location")
-      .eq("account_id", window.currentAccountId)
-      .eq("ean_norm", eanNorm)
-      .limit(1)
-    );
-
-    if (data?.length) {
-      return renderExistingProduct(data[0]);
-    }
-  }
-
-  /* ===================== ❌ PRODUS NOU ===================== */
-  renderNewProductForm(skuNorm);
+// call syncScanState in reception panel
+function showReceptionPanel() {
+  currentAppState = APP_STATE.RECEPTION;
+  syncScanState();
 }
 
-/* ===================== UI: PRODUS EXISTENT ===================== */
-function renderExistingProduct(row) {
-  scanResultReception.innerHTML = `
-    <div style="background:#e8f7e9;padding:22px;border-radius:16px;
-      font-size:26px;font-weight:900;">
-      📍 Locație curentă: ${row.location}
-    </div>
+// call syncScanState after order finalize
+async function finalizeOrder() {
+  if (!currentOrderId || !window.currentAccountId) return;
+  if (!confirm("Finalizezi comanda?")) return;
 
-    <input id="newLocationInput"
-      placeholder="Noua locație"
-      style="margin-top:16px;width:100%;padding:18px;font-size:22px;" />
+  try {
+    const { data: { session } } = await window.supabaseClient.auth.getSession();
+    if (!session) return;
 
-    <button style="margin-top:14px"
-      onclick="updateLocation(${row.id})">
-      Actualizează locația
-    </button>
-  `;
-}
-
-/* ===================== UI: PRODUS NOU ===================== */
-function renderNewProductForm(code) {
-  scanResultReception.innerHTML = `
-    <div style="background:#fff3cd;padding:22px;border-radius:16px;
-      font-size:22px;font-weight:800;">
-      ⚠️ Produs nou / fără locație
-    </div>
-
-    <input id="skuInput"
-      placeholder="SKU"
-      value="${code}"
-      style="margin-top:14px;width:100%;padding:18px;font-size:22px;" />
-
-    <input id="eanInput"
-      placeholder="EAN (opțional)"
-      style="margin-top:12px;width:100%;padding:18px;font-size:22px;" />
-
-    <input id="locationInput"
-      placeholder="Locație (ex: R2-R4-P1)"
-      style="margin-top:12px;width:100%;padding:18px;font-size:22px;" />
-
-    <button style="margin-top:16px"
-      onclick="createProductLocation()">
-      Salvează
-    </button>
-  `;
-}
-
-/* ===================== UPDATE LOCAȚIE ===================== */
-async function updateLocation(id) {
-  const loc = document.getElementById("newLocationInput").value.trim();
-  if (!loc) return alert("Introdu o locație");
-
-  const { error } = await window.supabaseClient
-    .from("product_locations")
-    .update({ location: loc })
-    .eq("id", id);
-
-  if (error) {
-    console.error(error);
-    alert("Eroare la salvare");
-    return;
-  }
-
-  scanResultReception.innerHTML = "✅ Locație actualizată";
-}
-
-/* ===================== INSERT PRODUS NOU ===================== */
-async function createProductLocation() {
-  const sku = document.getElementById("skuInput").value.trim();
-  const ean = document.getElementById("eanInput").value.trim();
-  const loc = document.getElementById("locationInput").value.trim();
-
-  if (!sku || !loc) {
-    alert("SKU și locația sunt obligatorii");
-    return;
-  }
-
-  const { error } = await window.supabaseClient
-    .from("product_locations")
-    .insert({
-      sku,
-      ean: ean || null,
-      location: loc,
-      account_id: window.currentAccountId
+    const durationSeconds = Math.floor((Date.now() - orderStartTime) / 1000);
+    await fetch(DELETE_ORDER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        orderId: currentOrderId,
+        accountId: window.currentAccountId,
+      }),
     });
 
-  if (error) {
-    console.error(error);
-    alert("Eroare la salvare produs");
-    return;
-  }
+    const order = allOrders.find(o => String(o.orderId) === String(currentOrderId));
+    const orderAmount = Number(order?.total_amount || order?.subtotal_amount || 0);
 
-  scanResultReception.innerHTML = "✅ Produs salvat";
+    await window.supabaseClient.rpc("increment_daily_stats", {
+      p_account_id: window.currentAccountId,
+      p_amount: orderAmount,
+      p_seconds: durationSeconds
+    });
+
+    feedbackSuccess();
+    resetOrderContext();
+    closeOrdersPanel();
+    closeQS();
+
+    await loadOrders({ silent: true, force: true });
+    await loadDailyStats();
+    updateStats();
+
+    setActiveNav("btnHome");
+
+    currentAppState = APP_STATE.IDLE;
+    syncScanState();
+
+  } catch (e) {
+    console.error(e);
+  }
 }
 
-/* ===================== INPUT ===================== */
-scanInputReception.addEventListener("input", (e) => {
-  clearTimeout(receptionScanTimer);
-
-  receptionScanTimer = setTimeout(() => {
-    const raw = e.target.value;
-    if (!raw) return;
-
-    e.target.value = "";
-    fetchReceptionLocation(raw);
-  }, 200);
+// also call syncScanState on DOM ready
+window.addEventListener("DOMContentLoaded", () => {
+  syncScanState();
 });
-
 </script>
-
-</body>
+</input></body>
 </html>
