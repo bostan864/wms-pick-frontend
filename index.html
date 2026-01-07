@@ -1500,7 +1500,8 @@ function updateFinishButton() {
   // afișăm butonul dacă există produse
   finishBtn.style.display = hasProducts ? "block" : "none";
 
-  // îl activăm doar când totul e scanat
+  // 🔥 FIX CRITIC
+  finishBtn.disabled = !allDone;
   finishBtn.classList.toggle("active", allDone);
 }
 
