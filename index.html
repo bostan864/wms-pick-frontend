@@ -1571,7 +1571,6 @@ function resetOrderContext() {
 /* ===================== FINALIZE ORDER ====================== */
 async function finalizeOrder() {
   if (!currentOrderId || !window.currentAccountId) return;
-
   if (!confirm("Finalizezi comanda?")) return;
 
   try {
@@ -1582,20 +1581,6 @@ async function finalizeOrder() {
     const durationSeconds =
       Math.floor((Date.now() - orderStartTime) / 1000);
 
-    // 🔁 Finalizare în backend (mutare din pending → done)
-    await fetch(DELETE_ORDER_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({
-        orderId: currentOrderId,
-        accountId: window.currentAccountId,
-      }),
-    });
-
-    // 🔢 Calcul pentru statistici
     const order = allOrders.find(
       o => String(o.orderId) === String(currentOrderId)
     );
@@ -1604,32 +1589,40 @@ async function finalizeOrder() {
       order?.total_amount || order?.subtotal_amount || 0
     );
 
-    // ✅ UPDATE STATISTICI (DB)
-    await window.supabaseClient.rpc("increment_daily_stats", {
-      p_account_id: window.currentAccountId,
-      p_amount: orderAmount,
-      p_seconds: durationSeconds
+    /* 🔥 SINGLE SOURCE OF TRUTH */
+    const res = await fetch(DELETE_ORDER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        orderId: currentOrderId,
+        accountId: window.currentAccountId,
+        orderAmount,
+        durationSeconds
+      }),
     });
 
-    // 🔥 CHEIA: sincronizare UI imediată
-    await loadDailyStats();
+    if (!res.ok) {
+      throw new Error("Finalize order failed");
+    }
 
-    // ✅ Feedback + curățare UI
+    /* UI CLEANUP */
     feedbackSuccess();
     resetOrderContext();
     closeOrdersPanel();
     closeQS();
 
-    // 🏠 Navigare Home
     setActiveNav("btnHome");
 
-    // 🔄 Reset controlat (scanner + focus)
     setTimeout(() => {
       hardResetApp("order finalized – reset scan + focus");
     }, 300);
 
-  } catch (e) {
-    console.error("Finalize order error:", e);
+  } catch (err) {
+    console.error("Finalize order error:", err);
+    alert("Eroare la finalizarea comenzii");
   }
 }
 /* ===================== CANCEL ORDER ====================== */
