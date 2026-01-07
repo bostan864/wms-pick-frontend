@@ -7,14 +7,11 @@
 window.APP_CONFIG = {
   SUPABASE_URL: "https://yvmqfsigxecmrygmbolg.supabase.co",
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2bXFmc2lneGVjbXJ5Z21ib2xnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwNDQ0MzgsImV4cCI6MjA3NTYyMDQzOH0.b9MXrgxADVZGvdFaKFQggD-vMd0ayZ9hX4_PmYOzrfE"
-}
+};
 
-const API_BASE = "https://oyster-app-XXXX.ondigitalocean.app";
-// sau
-// const API_BASE = "https://wms-pick-backend.DOMENIU_TAU.ro";
-</script>
-<script>
-window.API_BASE_URL = "https://oyster-app-6u5cg.ondigitalocean.app";
+window.APP = {
+  BACKEND_BASE_URL: "https://oyster-app-6u5cg.ondigitalocean.app"
+};
 </script>
 <meta charset="UTF-8" />
 <title>Nailly – Pick & Pack PRO</title>
@@ -971,8 +968,7 @@ window.supabaseClient = supabase.createClient(
 
 <script>
 /* ===================== CONFIG ====================== */
-const BACKEND_BASE_URL = "https://oyster-app-6u5cg.ondigitalocean.app";
-
+const BACKEND_BASE_URL = window.APP.BACKEND_BASE_URL;
 const ORDER_LIST_URL = `${BACKEND_BASE_URL}/orders/list`;
 const ORDER_GET_URL  = `${BACKEND_BASE_URL}/orders/get`;
 const DELETE_ORDER_URL = `${BACKEND_BASE_URL}/orders/delete`;
@@ -997,53 +993,48 @@ function getTodayKey() {
   return `nailly_pnp_done_${y}${m}${day}`;
 }
 
-/* ===================== SCAN HELPERS (SHARED) ===================== */
+/* ===================== SCAN NORMALIZER – CORECT ===================== */
+function normalizeScan(raw) {
+  if (!raw) return null;
 
-/* normalizează inputul brut de la scanner */
-function normalizeScanInput(raw) {
-  if (!raw) return "";
+  const clean = String(raw)
+    .replace(/^\]C1/, "") // GS1
+    .trim();
 
-  let s = String(raw).trim();
-  s = s.replace(/^\]C1/, ""); // GS1 prefix
-  s = s.replace(/\D/g, "");   // doar cifre
-  return s;
-}
-
-/* generează variante tolerate (11 / 12 / 13 cifre) */
-function generateScanVariants(code) {
-  if (!code) return [];
-
-  const variants = new Set();
-  const s = String(code).trim();
-
-  // 👉 dacă NU e numeric => SKU
-  if (!/^\d+$/.test(s)) {
-    variants.add(s);                // exact
-    variants.add(s.toUpperCase());  // siguranță
-    return [...variants];
+  // SKU text
+  if (!/^\d+$/.test(clean)) {
+    return {
+      type: "SKU",
+      sku: clean.toUpperCase(),
+      eanVariants: []
+    };
   }
 
-  // 👉 dacă e numeric => EAN
-  variants.add(s);
+  const digits = clean.replace(/\D/g, "");
+  const sku = digits.replace(/^0+/, "");
 
-  const noLeadingZero = s.replace(/^0+/, "");
-  variants.add(noLeadingZero);
+  const eanVariants = new Set();
 
-  if (noLeadingZero.length === 12) {
-    variants.add("0" + noLeadingZero);
+  // IDENTITATEA = ce s-a scanat
+  if (digits.length === 13 || digits.length === 12 || digits.length === 11) {
+    eanVariants.add(digits);
   }
 
-  if (noLeadingZero.length === 11) {
-    variants.add("0" + noLeadingZero);
-    variants.add("0" + noLeadingZero + "0");
+  // fallback CONTROLAT
+  if (digits.length === 13) {
+    eanVariants.add(digits.slice(1));       // 12
+    eanVariants.add(digits.slice(1, -1));   // 11
   }
 
-  if (s.length > 1) {
-    variants.add(s.slice(0, -1));
-    variants.add(("0" + s).slice(0, 13));
+  if (digits.length === 12) {
+    eanVariants.add(digits.slice(1));       // 11
   }
 
-  return [...variants];
+  return {
+    type: "NUMERIC",
+    sku,
+    eanVariants: [...eanVariants]
+  };
 }
 /* ===================== AUDIO + VIBRAȚIE ====================== */
 function playBeep(freq = 800, duration = 120, type = "sine") {
@@ -1069,6 +1060,18 @@ function feedbackSuccess() {
 function feedbackError() {
   playBeep(220, 200, "sawtooth");
   if (navigator.vibrate) navigator.vibrate([0, 80, 40, 80]);
+}
+function flashError() {
+  const input = document.getElementById("scanInput");
+  if (!input) return;
+
+  input.classList.remove("errorInput"); // reset defensiv
+  input.classList.add("errorInput");
+
+  // flash scurt, controlat
+  setTimeout(() => {
+    input.classList.remove("errorInput");
+  }, 120);
 }
 
 /* ===================== TIMER ====================== */
@@ -1353,64 +1356,68 @@ function handleScanAuto(e) {
   }, 180); // timing stabil Honeywell
 }
 
-/* ===================== SCAN LOGIC ====================== */
+/* ===================== PICK – SCAN LOGIC FINAL ===================== */
 function handleScanValue(rawValue) {
-  const raw = normalizeScanInput(rawValue);
-  if (!raw) {
+  const scan = normalizeScan(rawValue);
+
+  if (!scan) {
     feedbackError();
     flashError();
     return;
   }
 
-  const scannedVariants = generateScanVariants(raw);
-// =====================
-// 1️⃣ ÎNCERCARE SKU – MATCH EXACT
-// =====================
-const skuMatch = currentProducts.find(p => {
-  if (!p.sku) return false;
+  // =====================
+  //1️⃣ SKU MATCH (STRICT)
+  // =====================
+  const skuMatch = currentProducts.find(p => {
+    const skuDb = String(p.sku || "").replace(/^0+/, "");
+    return scan.sku && scan.sku === skuDb;
+  });
 
-  const skuNorm = String(p.sku).replace(/\D/g, "").replace(/^0+/, "");
-  return scannedVariants.includes(skuNorm);
+  if (skuMatch) {
+    if (skuMatch.scanned < skuMatch.qty) {
+      skuMatch.scanned++;
+      feedbackSuccess();
+      updateProductRow(skuMatch);
+      highlightNextRow();
+      updateFinishButton();
+      return;
+    } else {
+      feedbackError();
+      flashError();
+      return;
+    }
+  }
+
+ // =====================
+//2️⃣ EAN MATCH (ROBUST – EXACT CA VERSIUNEA CARE MERGEA)
+// =====================
+const eanMatch = currentProducts.find(p => {
+  if (!p.ean || !scan.eanVariants.length) return false;
+
+  const eanDb = String(p.ean).replace(/\D/g, "");
+
+  return scan.eanVariants.some(v =>
+    eanDb === v || eanDb.includes(v)
+  );
 });
 
-if (skuMatch) {
-  if (skuMatch.scanned < skuMatch.qty) {
-    skuMatch.scanned++;
+  if (!eanMatch) {
+    feedbackError();
+    flashError();
+    return;
+  }
+
+  if (eanMatch.scanned < eanMatch.qty) {
+    eanMatch.scanned++;
     feedbackSuccess();
-    updateProductRow(skuMatch);
+    updateProductRow(eanMatch);
     highlightNextRow();
     updateFinishButton();
-    return;
   } else {
     feedbackError();
     flashError();
-    return;
   }
-}
-
-// =====================
-// 2️⃣ ÎNCERCARE EAN – MATCH TOLERANT
-// =====================
-const eanMatch = currentProducts.find(p => {
-  if (!p.ean) return false;
-
-  const eanVariants = generateScanVariants(p.ean);
-  return scannedVariants.some(v => eanVariants.includes(v));
-});
-
-if (!eanMatch) {
-  feedbackError();
-  flashError();
-  return;
-}
-
-if (eanMatch.scanned < eanMatch.qty) {
-  eanMatch.scanned++;
-  feedbackSuccess();
-  updateProductRow(eanMatch);
-  highlightNextRow();
-  updateFinishButton(); // ✅ ASTA LIPSEA
-}
 }
 /* ===================== BUILD TABLE (ONCE) ====================== */
 function buildProductsTableOnce() {
@@ -1575,7 +1582,7 @@ async function finalizeOrder() {
     const durationSeconds =
       Math.floor((Date.now() - orderStartTime) / 1000);
 
-    // 🔁 Finalizare în backend
+    // 🔁 Finalizare în backend (mutare din pending → done)
     await fetch(DELETE_ORDER_URL, {
       method: "POST",
       headers: {
@@ -1597,29 +1604,32 @@ async function finalizeOrder() {
       order?.total_amount || order?.subtotal_amount || 0
     );
 
-    // ✅ Update statistici
+    // ✅ UPDATE STATISTICI (DB)
     await window.supabaseClient.rpc("increment_daily_stats", {
       p_account_id: window.currentAccountId,
       p_amount: orderAmount,
       p_seconds: durationSeconds
     });
 
-    // ✅ UI feedback + curățare
+    // 🔥 CHEIA: sincronizare UI imediată
+    await loadDailyStats();
+
+    // ✅ Feedback + curățare UI
     feedbackSuccess();
     resetOrderContext();
     closeOrdersPanel();
     closeQS();
 
-    // 🏠 Navigare spre Home
+    // 🏠 Navigare Home
     setActiveNav("btnHome");
 
-    // 🔄 Refresh complet – ca să meargă scannerul din prima
+    // 🔄 Reset controlat (scanner + focus)
     setTimeout(() => {
-      location.reload(); // 🧨 GARANTAT: focus pe scan, tastatură blocată
+      hardResetApp("order finalized – reset scan + focus");
     }, 300);
 
   } catch (e) {
-    console.error(e);
+    console.error("Finalize order error:", e);
   }
 }
 /* ===================== CANCEL ORDER ====================== */
@@ -1920,9 +1930,9 @@ function showReceptionPanel() {
   const isVisible = receptionPanel.style.display === "block";
 
   if (isVisible) {
-    location.reload();
-    return;
-  }
+  hardResetApp("exit reception mode");
+  return;
+}
 
   // 🔓 Arată Recepția
   receptionPanel.style.display = "block";
@@ -2061,135 +2071,165 @@ window.addEventListener("load", async () => {
 </script>
 
 <script>
-/* ===================== RECEPȚIE – SKU + EAN (LIKE FIX) ===================== */
+/* ===================== RECEPȚIE – FINAL SIMPLU ===================== */
 
 const scanInputReception = document.getElementById("scanInputReception");
 const scanResultReception = document.getElementById("scanResultReception");
+const receptionPanel = document.getElementById("receptionPanel");
 
-let receptionScanTimer = null;
+let receptionActive = false;
+let receptionTimer = null;
 
-/* ===================== UTIL ===================== */
-function normalizeSKU(code) {
-  if (!code) return "";
-  return String(code)
-    .replace(/^\]C1/, "")
-    .trim()
-    .toUpperCase(); // SKU = text
+/* ===================== TOGGLE RECEPȚIE ===================== */
+function toggleReception() {
+  if (receptionActive) {
+    closeReception();
+  } else {
+    openReception();
+  }
 }
 
-function normalizeEAN(code) {
-  if (!code) return "";
-  return String(code)
-    .replace(/^\]C1/, "")
-    .replace(/\D/g, "")
-    .replace(/^0+/, "");
+function openReception() {
+  receptionActive = true;
+  receptionPanel.style.display = "block";
+
+  // ascundem restul UI
+  document.getElementById("productsTable").style.display = "none";
+  document.getElementById("scanInput").style.display = "none";
+  document.getElementById("cameraBtn").style.display = "none";
+  document.getElementById("finishBtn").style.display = "none";
+  document.getElementById("orderMeta").style.display = "none";
+  document.getElementById("ordersPanel").style.display = "none";
+
+  document.getElementById("orderTitle").textContent = "Modul Recepție";
+  scanResultReception.innerHTML = "";
+  scanInputReception.value = "";
+
+  setTimeout(() => scanInputReception.focus(), 50);
 }
 
-/* ===================== FETCH LOCAȚIE ===================== */
+function closeReception() {
+  receptionActive = false;
+  receptionPanel.style.display = "none";
+  scanResultReception.innerHTML = "";
+
+  refreshHome(); // revenire curată
+}
+
+/* ===================== INPUT RECEPȚIE ===================== */
+scanInputReception.addEventListener("input", (e) => {
+  clearTimeout(receptionTimer);
+
+  receptionTimer = setTimeout(() => {
+    const raw = e.target.value.trim();
+    if (!raw) return;
+
+    e.target.value = "";
+    fetchReceptionLocation(raw);
+  }, 200);
+});
+
+scanInputReception.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+
+    const raw = scanInputReception.value.trim();
+    if (!raw) return;
+
+    scanInputReception.value = "";
+    fetchReceptionLocation(raw);
+  }
+});
+
+/* ===================== FETCH LOCAȚIE – ALINIAT CU PICK ===================== */
 async function fetchReceptionLocation(rawCode) {
   scanResultReception.innerHTML = "🔍 Caut produsul...";
 
-  const input = normalizeScanInput(rawCode);
-  if (!input) {
-    return renderNewProductForm("");
-  }
+  const scan = normalizeScan(rawCode);
+  if (!scan) return renderNewProductForm("");
 
-  // 🔹 SKU = eliminăm doar zerourile din față
-  const skuNorm = input.replace(/^0+/, "");
+  const sku = scan.sku || null;
+  const eanVariants = scan.eanVariants || [];
 
-  // 🔹 EAN = normalizare la 11 cifre (DOAR pentru EAN)
-  const eanNorm = input.replace(/\D/g, "").replace(/^0+/, "").slice(-11);
-
-  let data;
-
-  /* ===================== 1️⃣ CAUTĂ DUPĂ SKU ===================== */
-  ({ data } = await window.supabaseClient
-    .from("product_locations")
-    .select("id, sku, ean, ean_norm, location")
-    .eq("account_id", window.currentAccountId)
-    .eq("sku", skuNorm)
-    .limit(1)
-  );
-
-  if (data?.length) {
-    return renderExistingProduct(data[0]);
-  }
-
-  /* ===================== 2️⃣ CAUTĂ DUPĂ EAN EXACT ===================== */
-  if (input.length >= 8) {
-    ({ data } = await window.supabaseClient
+  // =====================
+  //1️⃣ SKU – MATCH STRICT
+  // =====================
+  if (sku) {
+    const { data } = await window.supabaseClient
       .from("product_locations")
-      .select("id, sku, ean, ean_norm, location")
+      .select("id, sku, ean, location")
       .eq("account_id", window.currentAccountId)
-      .eq("ean", input)
-      .limit(1)
-    );
+      .eq("sku", sku)
+      .limit(1);
 
     if (data?.length) {
       return renderExistingProduct(data[0]);
     }
   }
 
-  /* ===================== 3️⃣ CAUTĂ DUPĂ EAN NORMALIZAT ===================== */
-  if (eanNorm.length === 11) {
-    ({ data } = await window.supabaseClient
+  // =====================
+  // 2️⃣ EAN – MATCH ROBUST (11 / 12 / 13)
+  // =====================
+  if (eanVariants.length) {
+    const { data } = await window.supabaseClient
       .from("product_locations")
-      .select("id, sku, ean, ean_norm, location")
-      .eq("account_id", window.currentAccountId)
-      .eq("ean_norm", eanNorm)
-      .limit(1)
-    );
+      .select("id, sku, ean, location")
+      .eq("account_id", window.currentAccountId);
 
     if (data?.length) {
-      return renderExistingProduct(data[0]);
+      const match = data.find(row => {
+        const eanDb = String(row.ean || "").replace(/\D/g, "");
+        return eanVariants.some(v =>
+          eanDb === v || eanDb.includes(v)
+        );
+      });
+
+      if (match) {
+        return renderExistingProduct(match);
+      }
     }
   }
 
-  /* ===================== ❌ PRODUS NOU ===================== */
-  renderNewProductForm(skuNorm);
+  // =====================
+  // ❌ PRODUS NOU
+  // =====================
+  return renderNewProductForm(sku || "");
 }
 
-/* ===================== UI: PRODUS EXISTENT ===================== */
+/* ===================== UI EXISTENT ===================== */
 function renderExistingProduct(row) {
   scanResultReception.innerHTML = `
-    <div style="background:#e8f7e9;padding:22px;border-radius:16px;
-      font-size:26px;font-weight:900;">
-      📍 Locație curentă: ${row.location}
+    <div style="background:#e8f7e9;padding:18px;border-radius:14px;font-size:22px;">
+      📍 Locație: <strong>${row.location}</strong>
     </div>
 
-    <input id="newLocationInput"
-      placeholder="Noua locație"
-      style="margin-top:16px;width:100%;padding:18px;font-size:22px;" />
+    <input id="newLocationInput" placeholder="Noua locație"
+      style="margin-top:12px;padding:16px;font-size:18px;width:100%;" />
 
-    <button style="margin-top:14px"
+    <button style="margin-top:12px"
       onclick="updateLocation(${row.id})">
-      Actualizează locația
+      Salvează
     </button>
   `;
 }
 
-/* ===================== UI: PRODUS NOU ===================== */
+/* ===================== UI PRODUS NOU ===================== */
 function renderNewProductForm(code) {
   scanResultReception.innerHTML = `
-    <div style="background:#fff3cd;padding:22px;border-radius:16px;
-      font-size:22px;font-weight:800;">
-      ⚠️ Produs nou / fără locație
+    <div style="background:#fff3cd;padding:18px;border-radius:14px;font-size:20px;">
+      Produs nou
     </div>
 
-    <input id="skuInput"
-      placeholder="SKU"
-      value="${code}"
-      style="margin-top:14px;width:100%;padding:18px;font-size:22px;" />
+    <input id="skuInput" placeholder="SKU" value="${code}"
+      style="margin-top:12px;padding:16px;font-size:18px;width:100%;" />
 
-    <input id="eanInput"
-      placeholder="EAN (opțional)"
-      style="margin-top:12px;width:100%;padding:18px;font-size:22px;" />
+    <input id="eanInput" placeholder="EAN"
+      style="margin-top:10px;padding:16px;font-size:18px;width:100%;" />
 
-    <input id="locationInput"
-      placeholder="Locație (ex: R2-R4-P1)"
-      style="margin-top:12px;width:100%;padding:18px;font-size:22px;" />
+    <input id="locationInput" placeholder="Locație"
+      style="margin-top:10px;padding:16px;font-size:18px;width:100%;" />
 
-    <button style="margin-top:16px"
+    <button style="margin-top:12px"
       onclick="createProductLocation()">
       Salvează
     </button>
@@ -2201,32 +2241,23 @@ async function updateLocation(id) {
   const loc = document.getElementById("newLocationInput").value.trim();
   if (!loc) return alert("Introdu o locație");
 
-  const { error } = await window.supabaseClient
+  await window.supabaseClient
     .from("product_locations")
     .update({ location: loc })
     .eq("id", id);
 
-  if (error) {
-    console.error(error);
-    alert("Eroare la salvare");
-    return;
-  }
-
   scanResultReception.innerHTML = "✅ Locație actualizată";
 }
 
-/* ===================== INSERT PRODUS NOU ===================== */
+/* ===================== INSERT PRODUS ===================== */
 async function createProductLocation() {
   const sku = document.getElementById("skuInput").value.trim();
   const ean = document.getElementById("eanInput").value.trim();
   const loc = document.getElementById("locationInput").value.trim();
 
-  if (!sku || !loc) {
-    alert("SKU și locația sunt obligatorii");
-    return;
-  }
+  if (!sku || !loc) return alert("SKU și locația sunt obligatorii");
 
-  const { error } = await window.supabaseClient
+  await window.supabaseClient
     .from("product_locations")
     .insert({
       sku,
@@ -2235,26 +2266,13 @@ async function createProductLocation() {
       account_id: window.currentAccountId
     });
 
-  if (error) {
-    console.error(error);
-    alert("Eroare la salvare produs");
-    return;
-  }
-
   scanResultReception.innerHTML = "✅ Produs salvat";
 }
 
-/* ===================== INPUT ===================== */
-scanInputReception.addEventListener("input", (e) => {
-  clearTimeout(receptionScanTimer);
-
-  receptionScanTimer = setTimeout(() => {
-    const raw = e.target.value;
-    if (!raw) return;
-
-    e.target.value = "";
-    fetchReceptionLocation(raw);
-  }, 200);
+/* ===================== BUTON RECEPȚIE ===================== */
+document.getElementById("btnReception").addEventListener("click", () => {
+  setActiveNav("btnReception");
+  toggleReception();
 });
 
 </script>
