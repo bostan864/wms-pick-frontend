@@ -1608,17 +1608,23 @@ async function finalizeOrder() {
       throw new Error("Finalize order failed");
     }
 
-    /* UI CLEANUP */
-    feedbackSuccess();
-    resetOrderContext();
-    closeOrdersPanel();
-    closeQS();
+   /* UI CLEANUP */
+feedbackSuccess();
+resetOrderContext();
+closeOrdersPanel();
+closeQS();
 
-    setActiveNav("btnHome");
+setActiveNav("btnHome");
 
-    setTimeout(() => {
-      hardResetApp("order finalized – reset scan + focus");
-    }, 300);
+// 🔥 refresh imediat comenzi + stats (dispare instant din cardul verde)
+await loadOrders({ silent: true, force: true });
+updateStats();
+
+// 🔄 reset complet pentru scanare/focus (siguranță)
+setTimeout(() => {
+  hardResetApp("order finalized – reset scan + focus");
+}, 300);
+
 
   } catch (err) {
     console.error("Finalize order error:", err);
