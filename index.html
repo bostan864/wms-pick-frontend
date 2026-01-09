@@ -2107,7 +2107,11 @@ function openReception() {
   scanResultReception.innerHTML = "";
   scanInputReception.value = "";
 
-  setTimeout(() => scanInputReception.focus(), 50);
+  // 🔕 FOCUS FĂRĂ TASTATURĂ (IDENTIC CU PICK)
+  setTimeout(() => {
+    scanInputReception.focus();
+    scanInputReception.setAttribute("inputmode", "none");
+  }, 50);
 }
 
 function closeReception() {
@@ -2143,6 +2147,15 @@ scanInputReception.addEventListener("keydown", (e) => {
   }
 });
 
+/* ===================== CLICK MANUAL → PERMITE TASTATURA ===================== */
+if (!scanInputReception.dataset.manualEnabled) {
+  scanInputReception.addEventListener("click", function () {
+    this.removeAttribute("inputmode"); // tastatura permisă DOAR manual
+    this.focus();
+  });
+  scanInputReception.dataset.manualEnabled = "1";
+}
+
 /* ===================== FETCH LOCAȚIE – ALINIAT CU PICK ===================== */
 async function fetchReceptionLocation(rawCode) {
   scanResultReception.innerHTML = "🔍 Caut produsul...";
@@ -2153,9 +2166,7 @@ async function fetchReceptionLocation(rawCode) {
   const sku = scan.sku || null;
   const eanVariants = scan.eanVariants || [];
 
-  // =====================
-  //1️⃣ SKU – MATCH STRICT
-  // =====================
+  // 1️⃣ SKU – MATCH STRICT
   if (sku) {
     const { data } = await window.supabaseClient
       .from("product_locations")
@@ -2169,9 +2180,7 @@ async function fetchReceptionLocation(rawCode) {
     }
   }
 
-  // =====================
   // 2️⃣ EAN – MATCH ROBUST (11 / 12 / 13)
-  // =====================
   if (eanVariants.length) {
     const { data } = await window.supabaseClient
       .from("product_locations")
@@ -2192,9 +2201,7 @@ async function fetchReceptionLocation(rawCode) {
     }
   }
 
-  // =====================
   // ❌ PRODUS NOU
-  // =====================
   return renderNewProductForm(sku || "");
 }
 
