@@ -1776,28 +1776,61 @@ const qs = {
   input: null,
   btn: null,
   close: null,
-  results: null
+  results: null,
+  scanTimer: null
 };
 
-function openQS(){
+function normalizeAwb(raw) {
+  if (!raw) return "";
+
+  let v = String(raw)
+    .replace(/^\]C1/, "")   // GS1 prefix
+    .replace(/\s+/g, "")    // elimină TOATE spațiile (GLS)
+    .trim();
+
+  /*
+    REGULĂ:
+    – dacă AWB-ul se termină cu 3 cifre
+    – și eliminarea lor lasă un cod >= 8 caractere
+    → considerăm SUFIX DE COLET (Sameday) și îl tăiem
+  */
+
+  const m = v.match(/^(.*?)(\d{3})$/);
+  if (m) {
+    const base = m[1];
+
+    // protecție: nu tăiem dacă ar deveni prea scurt (GLS safety)
+    if (base.length >= 8) {
+      return base;
+    }
+  }
+
+  return v;
+}
+
+/* ===================== OPEN / CLOSE ====================== */
+function openQS() {
   qs.overlay.classList.add("active");
   qs.input.value = "";
   qs.results.innerHTML = "";
   qs.results.classList.remove("show");
 
+  // 🔕 focus FĂRĂ tastatură
   setTimeout(() => {
+    qs.input.setAttribute("inputmode", "none");
     qs.input.focus();
   }, 60);
 }
 
-function closeQS(){
+function closeQS() {
   qs.overlay.classList.remove("active");
   qs.input.value = "";
   qs.results.innerHTML = "";
   qs.results.classList.remove("show");
 }
 
-function renderQSResults(matches){
+/* ===================== LIVE FILTER (ORDER ID ONLY) ====================== */
+function renderQSResults(matches) {
   qs.results.innerHTML = "";
   if (!matches.length) {
     qs.results.classList.remove("show");
@@ -1811,68 +1844,126 @@ function renderQSResults(matches){
     div.className = "quick-search-item";
     div.textContent = `Comanda #${o.orderId}`;
 
-    div.onclick = () => {
+    div.onclick = async () => {
       closeQS();
 
-      // 🔥 refresh + load CURAT
-      setTimeout(async () => {
-        await loadOrders({ silent: true, force: true });
+      await loadOrders({ silent: true, force: true });
 
-        const freshOrder = allOrders.find(
-          x => String(x.orderId) === String(o.orderId)
-        );
+      const freshOrder = allOrders.find(
+        x => String(x.orderId) === String(o.orderId)
+      );
 
-        if (!freshOrder) {
-          alert("Comanda nu mai există");
-          return;
-        }
+      if (!freshOrder) {
+        alert("Comanda nu mai există");
+        return;
+      }
 
-        loadOrder(freshOrder);
-        setActiveNav("btnSearch");
-      }, 50);
+      loadOrder(freshOrder);
+      setActiveNav("btnSearch");
     };
 
     qs.results.appendChild(div);
   });
 }
 
-function qsHandleInput(){
-  const v = (qs.input.value || "").trim();
-  if (!v) {
-    qs.results.innerHTML = "";
-    qs.results.classList.remove("show");
+/* ===================== INPUT HANDLER (SCANNER SAFE) ====================== */
+function qsHandleInput() {
+  clearTimeout(qs.scanTimer);
+
+  const raw = (qs.input.value || "").trim();
+  if (!raw) return;
+
+  // 🔥 scanner delay (NU ENTER)
+  qs.scanTimer = setTimeout(() => {
+    qsRunSearch();
+  }, 180); // timing stabil Honeywell / Zebra
+}
+
+/* ===================== SCAN / SEARCH ====================== */
+async function qsRunSearch() {
+  const raw = (qs.input.value || "").trim();
+  if (!raw) return;
+
+  qs.input.value = "";
+  closeQS();
+
+  const value = normalizeAwb(raw);
+
+  await loadOrders({ silent: true, force: true });
+
+  /* 1️⃣ ORDER NUMBER (FAST PATH) */
+  const order = allOrders.find(
+    o => String(o.orderId) === value
+  );
+
+  if (order) {
+    loadOrder(order);
+    setActiveNav("btnSearch");
     return;
   }
 
-  const matches = allOrders.filter(o =>
-    String(o.orderId).includes(v)
-  );
+  /* 2️⃣ AWB → BACKEND */
+  try {
+    const { data: { session } } =
+      await window.supabaseClient.auth.getSession();
 
-  renderQSResults(matches);
-}
+    if (!session) throw new Error("No session");
 
-function qsRunSearch(){
-  const v = (qs.input.value || "").trim();
-  if (!v) return;
-
-  closeQS();
-
-  setTimeout(async () => {
-    await loadOrders({ silent: true, force: true });
-
-    const order = allOrders.find(
-      o => String(o.orderId) === v
+    const res = await fetch(
+      `${BACKEND_BASE_URL}/orders/by-awb?awb=${encodeURIComponent(value)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      }
     );
 
-    if (!order) {
-      alert("Comanda nu a fost găsită");
-      return;
-    }
+    if (!res.ok) throw new Error("AWB not found");
 
-    loadOrder(order);
+    const data = await res.json();
+
+    loadOrder({ orderId: data.orderId });
     setActiveNav("btnSearch");
-  }, 50);
+
+  } catch {
+    alert("Nu există comandă pentru acest cod");
+  }
 }
+
+/* ===================== BLOCK ENTER COMPLET ====================== */
+function blockEnter(e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }
+}
+
+/* ===================== MANUAL CLICK → PERMITE TASTATURA ====================== */
+function enableManualTypingQS() {
+  qs.input.removeAttribute("inputmode");
+  qs.input.focus();
+}
+
+/* ===================== INIT ====================== */
+document.addEventListener("DOMContentLoaded", () => {
+  qs.overlay = document.getElementById("quickSearchOverlay");
+  qs.input   = document.getElementById("quickSearchInput");
+  qs.btn     = document.getElementById("quickSearchBtn");
+  qs.close   = document.getElementById("quickSearchClose");
+  qs.results = document.getElementById("quickSearchResults");
+
+  qs.btn.addEventListener("click", enableManualTypingQS);
+  qs.close.addEventListener("click", closeQS);
+
+  qs.overlay.addEventListener("click", e => {
+    if (e.target === qs.overlay) closeQS();
+  });
+
+  qs.input.addEventListener("input", qsHandleInput);
+  qs.input.addEventListener("keydown", blockEnter);
+  qs.input.addEventListener("click", enableManualTypingQS);
+});
 
 /* ===================== NAV STATE ====================== */
 function setActiveNav(id){
