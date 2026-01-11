@@ -535,13 +535,13 @@ window.APP = {
 /* BUTON ANULARE – mic, sigur, UX corect */
 .cancel-btn {
   width: auto !important;
-  padding: 10px 20px !important;        /* 🔥 mai mare pe verticală și orizontală */
-  font-size: 18px !important;           /* 🔠 text mai vizibil */
+  padding: 10px 20px !important;
+  font-size: 18px !important;
   border-radius: 999px !important;
 
-  background: #fde8ef !important;
-  border: 1px solid #d81b60 !important;
-  color: #d81b60 !important;
+  background: #f2f2f2 !important;
+  border: 1px solid #111 !important;
+  color: #111 !important;
 
   cursor: pointer;
   white-space: nowrap;
@@ -549,7 +549,7 @@ window.APP = {
 }
 
 .cancel-btn:hover{
-  background:#d81b60 !important;
+  background:#111 !important;
   color:#fff !important;
 }
 /* ===== LOGIN OVERLAY ===== */
@@ -575,7 +575,7 @@ window.APP = {
 
 .login-box h2 {
   margin-bottom: 32px;
-  color: #d81b60;
+  color: #111;
   font-size: 36px;            /* 🔠 mare și clar */
   font-weight: 800;
 }
@@ -594,7 +594,7 @@ window.APP = {
   padding: 28px;
   border-radius: 20px;
   border: none;
-  background: #d81b60;
+  background: #111;
   color: #fff;
   font-size: 28px;            /* 🔠 clar și ușor de apăsat */
   font-weight: 900;
@@ -607,6 +607,10 @@ window.APP = {
   margin-top:10px;
   display:none;
 }
+.login-box button:hover {
+  filter: brightness(0.9);
+}
+
 /* ============================
    WMS MOBILE MODE – FORȚAT
    ============================ */
@@ -1634,40 +1638,64 @@ setTimeout(() => {
     alert("Eroare la finalizarea comenzii");
   }
 }
-/* ===================== CANCEL ORDER ====================== */
+/* ===================== CANCEL ORDER (ALINIAT CU FINALIZE) ====================== */
 async function cancelOrder(orderId, event) {
   event.stopPropagation();
 
   if (!confirm(`Anulezi comanda #${orderId}?`)) return;
 
-  const { data: { session } } =
-    await window.supabaseClient.auth.getSession();
+  try {
+    const { data: { session } } =
+      await window.supabaseClient.auth.getSession();
 
-  if (!session) {
-    alert("Sesiune invalidă");
-    return;
+    if (!session) {
+      alert("Sesiune invalidă");
+      return;
+    }
+
+    const res = await fetch(DELETE_ORDER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        orderId,
+        accountId: window.currentAccountId,
+        // ⚠️ nu trimitem stats la anulare
+        orderAmount: 0,
+        durationSeconds: 0
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Cancel order failed");
+    }
+
+    /* UI CLEANUP – IDENTIC CU FINALIZE */
+    feedbackSuccess();
+    resetOrderContext();
+    closeOrdersPanel();
+    closeQS();
+
+    setActiveNav("btnHome");
+
+    // 🔥 refresh pending (card verde)
+    await loadOrders({ silent: true, force: true });
+    updateStats();
+
+    // 🔥 refresh done (card albastru)
+    await loadDailyStats();
+
+    // 🔄 reset complet scan / focus
+    setTimeout(() => {
+      hardResetApp("order canceled – reset scan + focus");
+    }, 300);
+
+  } catch (err) {
+    console.error("Cancel order error:", err);
+    alert("Eroare la anularea comenzii");
   }
-
-  const res = await fetch(DELETE_ORDER_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify({
-      orderId,
-      accountId: window.currentAccountId,
-    }),
-  });
-
-  if (!res.ok) {
-    alert("Eroare la anulare");
-    return;
-  }
-
-  await resetAfterOrderAction({ silent: true });
-  closeOrdersPanel();
-  renderOrdersPanel();
 }
 
 /* ===================== ORDERS PANEL ====================== */
