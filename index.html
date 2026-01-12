@@ -1780,30 +1780,38 @@ const qs = {
   scanTimer: null
 };
 
-/* ===================== NORMALIZE AWB – GLS + SAMEDAY ====================== */
+/* ===================== NORMALIZE AWB – GLS + SAMEDAY (FIX FINAL) ====================== */
 function normalizeAwb(raw) {
   if (!raw) return "";
 
+  // 1) curățare agresivă pentru ce trimite scannerul (CR/LF/space/GS1)
   let v = String(raw)
-    .replace(/^\]C1/, "")     // GS1 prefix
-    .replace(/\s+/g, "")      // elimină TOATE spațiile
+    .replace(/^\]C1/i, "")            // GS1 prefix
+    .replace(/[^0-9a-z]/gi, "")       // păstrează DOAR litere+cifre (taie spații/newlines)
+    .toUpperCase()
     .trim();
 
   // =====================
-  // SAMEDAY → elimină sufix colet (001–999)
-  // ex: 10NB24453400441001 → 10NB24453400441
+  // SAMEDAY → "1ONB" (la tine) + sufix colet 001-999
+  // ex: 1ONB24453529130001 → 1ONB24453529130
+  // (păstrăm și compatibilitate pt 10NB dacă apare)
   // =====================
-  if (/^10NB/.test(v) && /\d{3}$/.test(v)) {
-    return v.slice(0, -3);
+  if (/^(1ONB|10NB)/.test(v)) {
+    // dacă are sufix 3 cifre și e mai lung decât AWB-ul standard (14)
+    if (v.length > 14 && /\d{3}$/.test(v)) {
+      v = v.slice(0, -3);
+    }
+    return v;
   }
 
   // =====================
-  // GLS
+  // GLS (NU SCHIMBĂM LOGICA TA)
   // – acceptă:
   //   06232289377
   //   6232289377
   //   062322893776 (checksum)
   // =====================
+
   // dacă are 11–12 cifre și începe cu 0 → tăiem 0
   if (/^0\d{10,11}$/.test(v)) {
     v = v.slice(1);
