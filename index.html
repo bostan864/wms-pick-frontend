@@ -1780,29 +1780,24 @@ const qs = {
   scanTimer: null
 };
 
+/* ===================== NORMALIZE AWB ====================== */
 function normalizeAwb(raw) {
   if (!raw) return "";
 
   let v = String(raw)
-    .replace(/^\]C1/, "")   // GS1 prefix
-    .replace(/\s+/g, "")    // elimină TOATE spațiile (GLS)
+    .replace(/^\]C1/, "")     // GS1
+    .replace(/\s+/g, "")      // GLS: elimină spațiile
     .trim();
 
   /*
-    REGULĂ:
-    – dacă AWB-ul se termină cu 3 cifre
-    – și eliminarea lor lasă un cod >= 8 caractere
-    → considerăm SUFIX DE COLET (Sameday) și îl tăiem
+    REGULĂ SAMEDAY:
+    – dacă se termină cu 3 cifre
+    – și baza rămâne suficient de lungă
+    → tăiem sufixul de colet (001–999)
   */
-
   const m = v.match(/^(.*?)(\d{3})$/);
-  if (m) {
-    const base = m[1];
-
-    // protecție: nu tăiem dacă ar deveni prea scurt (GLS safety)
-    if (base.length >= 8) {
-      return base;
-    }
+  if (m && m[1].length >= 8) {
+    return m[1];
   }
 
   return v;
@@ -1829,7 +1824,7 @@ function closeQS() {
   qs.results.classList.remove("show");
 }
 
-/* ===================== LIVE FILTER (ORDER ID ONLY) ====================== */
+/* ===================== RENDER RESULTS ====================== */
 function renderQSResults(matches) {
   qs.results.innerHTML = "";
   if (!matches.length) {
@@ -1849,16 +1844,16 @@ function renderQSResults(matches) {
 
       await loadOrders({ silent: true, force: true });
 
-      const freshOrder = allOrders.find(
+      const fresh = allOrders.find(
         x => String(x.orderId) === String(o.orderId)
       );
 
-      if (!freshOrder) {
+      if (!fresh) {
         alert("Comanda nu mai există");
         return;
       }
 
-      loadOrder(freshOrder);
+      loadOrder(fresh);
       setActiveNav("btnSearch");
     };
 
@@ -1866,32 +1861,34 @@ function renderQSResults(matches) {
   });
 }
 
-/* ===================== INPUT HANDLER (SCANNER SAFE) ====================== */
-function qsHandleInput() {
+/* ===================== INPUT HANDLER (SCAN) ====================== */
+function qsHandleInput(e) {
   clearTimeout(qs.scanTimer);
 
-  const raw = (qs.input.value || "").trim();
+  const raw = (e.target.value || "").trim();
   if (!raw) return;
 
-  // 🔥 scanner delay (NU ENTER)
   qs.scanTimer = setTimeout(() => {
-    qsRunSearch();
+    const value = e.target.value.trim();
+
+    // 🔥 ESENȚIAL: golim inputul ca la Pick
+    e.target.value = "";
+
+    qsRunSearch(value);
   }, 180); // timing stabil Honeywell / Zebra
 }
 
-/* ===================== SCAN / SEARCH ====================== */
-async function qsRunSearch() {
-  const raw = (qs.input.value || "").trim();
+/* ===================== SEARCH LOGIC ====================== */
+async function qsRunSearch(raw) {
   if (!raw) return;
 
-  qs.input.value = "";
   closeQS();
 
   const value = normalizeAwb(raw);
 
   await loadOrders({ silent: true, force: true });
 
-  /* 1️⃣ ORDER NUMBER (FAST PATH) */
+  /* 1️⃣ ORDER NUMBER */
   const order = allOrders.find(
     o => String(o.orderId) === value
   );
@@ -1930,16 +1927,15 @@ async function qsRunSearch() {
   }
 }
 
-/* ===================== BLOCK ENTER COMPLET ====================== */
+/* ===================== BLOCK ENTER (SCANNER SAFE) ====================== */
 function blockEnter(e) {
   if (e.key === "Enter") {
     e.preventDefault();
     e.stopPropagation();
-    return false;
   }
 }
 
-/* ===================== MANUAL CLICK → PERMITE TASTATURA ====================== */
+/* ===================== MANUAL CLICK → TASTATURĂ ====================== */
 function enableManualTypingQS() {
   qs.input.removeAttribute("inputmode");
   qs.input.focus();
@@ -1953,16 +1949,16 @@ document.addEventListener("DOMContentLoaded", () => {
   qs.close   = document.getElementById("quickSearchClose");
   qs.results = document.getElementById("quickSearchResults");
 
+  qs.input.addEventListener("input", qsHandleInput);
+  qs.input.addEventListener("keydown", blockEnter);
+  qs.input.addEventListener("click", enableManualTypingQS);
+
   qs.btn.addEventListener("click", enableManualTypingQS);
   qs.close.addEventListener("click", closeQS);
 
   qs.overlay.addEventListener("click", e => {
     if (e.target === qs.overlay) closeQS();
   });
-
-  qs.input.addEventListener("input", qsHandleInput);
-  qs.input.addEventListener("keydown", blockEnter);
-  qs.input.addEventListener("click", enableManualTypingQS);
 });
 
 /* ===================== NAV STATE ====================== */
