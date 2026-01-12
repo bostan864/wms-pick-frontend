@@ -1780,24 +1780,42 @@ const qs = {
   scanTimer: null
 };
 
-/* ===================== NORMALIZE AWB ====================== */
+/* ===================== NORMALIZE AWB – GLS + SAMEDAY ====================== */
 function normalizeAwb(raw) {
   if (!raw) return "";
 
   let v = String(raw)
-    .replace(/^\]C1/, "")     // GS1
-    .replace(/\s+/g, "")      // GLS: elimină spații
+    .replace(/^\]C1/, "")     // GS1 prefix
+    .replace(/\s+/g, "")      // elimină TOATE spațiile
     .trim();
 
-  // SAMEDAY: taie sufix 001–999
-  const m = v.match(/^(.*?)(\d{3})$/);
-  if (m && m[1].length >= 8) {
-    return m[1];
+  // =====================
+  // SAMEDAY → elimină sufix colet (001–999)
+  // ex: 10NB24453400441001 → 10NB24453400441
+  // =====================
+  if (/^10NB/.test(v) && /\d{3}$/.test(v)) {
+    return v.slice(0, -3);
+  }
+
+  // =====================
+  // GLS
+  // – acceptă:
+  //   06232289377
+  //   6232289377
+  //   062322893776 (checksum)
+  // =====================
+  // dacă are 11–12 cifre și începe cu 0 → tăiem 0
+  if (/^0\d{10,11}$/.test(v)) {
+    v = v.slice(1);
+  }
+
+  // dacă are 11 cifre și ultima e checksum → tăiem ultima
+  if (/^\d{11}$/.test(v)) {
+    v = v.slice(0, 10);
   }
 
   return v;
 }
-
 /* ===================== OPEN / CLOSE ====================== */
 function openQS() {
   qs.overlay.classList.add("active");
